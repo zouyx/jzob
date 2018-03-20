@@ -79,10 +79,7 @@ gems:
   - jekyll-paginate # Create paginate
   - jekyll-menus
 
-whitelist:
-  - jekyll-menus
-
-safe: false
+destination: _deploy
 
 # Exclude these files from your production _site
 exclude:
