@@ -1,0 +1,10 @@
+header:
+  - url: /
+    title: Blogs
+    identifier: blogs
+  - url: /projects
+    title: Projects
+    identifier: projects
+  - url: /about
+    title: About
+    identifier: about
