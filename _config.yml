@@ -37,7 +37,7 @@ footer-links:
 disqus:
 
 # Enter your Google Analytics web tracking code (e.g. UA-2110908-2) to activate tracking
-google_analytics: UA-115938575-1
+google_analytics:
 
 # Your website URL (e.g. http://barryclark.github.io or http://www.barryclark.co)
 # Used for Sitemap.xml and your RSS feed
@@ -78,6 +78,7 @@ gems:
   - jekyll-feed # Create an Atom feed using the official Jekyll feed gem
   - jekyll-paginate # Create paginate
   - jekyll-menus
+  - jekyll-analytics
 
 destination: _deploy
 
@@ -88,6 +89,8 @@ exclude:
   - LICENSE
   - README.md
   - CNAME
+  - build.sh
+  - start.sh
 
 # Outputting
 permalink:     date
