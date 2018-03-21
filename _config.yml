@@ -83,9 +83,6 @@ gems:
 plugins:
   - jekyll-humanize
 
-humanize:
-    date_format: "%m/%d/%Y"
-
 # Exclude these files from your production _site
 exclude:
   - Gemfile
