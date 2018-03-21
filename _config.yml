@@ -79,9 +79,8 @@ gems:
   - jekyll-paginate # Create paginate
   - jekyll-menus
   - jekyll-analytics
+  - jekyll-seo-tag
 
-plugins:
-  - jekyll-humanize
 
 # Exclude these files from your production _site
 exclude:
