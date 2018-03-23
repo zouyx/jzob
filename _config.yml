@@ -81,6 +81,16 @@ gems:
   - jekyll-analytics
   - jekyll-seo-tag
 
+sitemap:
+    filename: "/sitemap_new.xml"
+    exclude:
+        - "/atom.xml"
+        - "/feed.xml"
+        - "/feed/index.xml"
+    include_posts:
+        - "/index.html"
+    change_frequency_name: "change_frequency"
+    priority_name: "priority"
 
 # Exclude these files from your production _site
 exclude:
