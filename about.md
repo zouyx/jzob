@@ -27,7 +27,7 @@ Java and Golang Coder
 
 ## Languages
 
-![https://wakatime.com/](https://wakatime.com/share/@joezou/3f8c6796-1dd4-4e6a-98bd-b329f96e6eed.png)
+![https://wakatime.com/](https://wakatime.com/share/@joezou/d02ed579-ddde-4b42-9622-8437b66411fa.png)
 
 ## More
 
