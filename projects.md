@@ -13,6 +13,12 @@ published: true
   
 ### gopt（[https://github.com/zouyx/gopt](https://github.com/zouyx/gopt) ）
   Golang新项目模板，整合一些CI工具如Travis CI,coveralls等。
+  
+## val ( [https://github.com/zouyx/val](https://github.com/zouyx/val) )
+  
+![main](/images/val/val.png)
+
+   使用vue.js编写计算器桌面应用  
 
 ## Contact me
 
