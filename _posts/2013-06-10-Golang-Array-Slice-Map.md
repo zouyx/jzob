@@ -94,3 +94,6 @@ permalink: /posts/2013/6/10/Golang-Array-Slice-Map.html
 
      另外一种方式
      value,isExist:=monthDays["Jan"]
+     
+## 参考文献
+> http://www.cnblogs.com/yjf512/archive/2012/06/14/2549929.html
