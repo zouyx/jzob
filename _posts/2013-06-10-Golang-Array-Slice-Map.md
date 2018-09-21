@@ -1,0 +1,76 @@
+---
+layout: post
+title: Golang-Go基础赋值
+permalink: /posts/2013/6/1/Golang-Go基础赋值.html
+---
+
+介绍Go赋值有两种方法
+
+# Let‘s Go!
+-----
+## 先定义类型再赋值
+
+```go
+package main
+
+import (
+)
+
+func main(){
+
+ //定义一个变量a类型为int
+ var a int
+ //将变量a赋值为1,如果不初始化默认为0
+ a=1
+ //打印变量a
+ println("a:",a);
+
+}
+```
+
+###注意
+定义变量的时候切记和java是有区别的哦..亲...
+java:int a;
+go:var a int
+
+### 多个变量同时赋值
+//初始化,这种方式成为group
+var(
+ a int
+ b string
+)
+注意:使用group方式赋值的时候注意
+var和括号一定要在同一行
+如:
+var(
+
+不能写成不在同一行
+如:
+var
+(
+会报错
+
+//赋值
+a=1
+b="2"
+
+
+
+## 直接赋值
+
+```go
+package main
+
+import (
+)
+
+func main(){
+ //将变量a赋值为1,不需要定义类型,类型由赋值推演出来
+ a:=1
+ //打印变量a
+ println("a:",a);
+}
+```
+
+多个变量同时赋值
+a,b:=1,2
