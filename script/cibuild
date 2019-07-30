@@ -1,9 +1,8 @@
-gem install jekyll
-gem install jekyll-sitemap
+gem install jekyll jekyll-sitemap html-proofer
 gem install jekyll-sitemap
 gem install jekyll-feed
 gem install jekyll-paginate
 gem install jekyll-menus
 gem install jekyll-analytics
 gem install jekyll-seo-tag
-JEKYLL_ENV=production jekyll build --destination=_deploy
+JEKYLL_ENV=production jekyll build && htmlproofer ./_site
