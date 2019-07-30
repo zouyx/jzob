@@ -1,1 +1,2 @@
+gem install jekyll
 JEKYLL_ENV=production jekyll build --destination=_deploy
