@@ -11,7 +11,9 @@ permalink: /posts/2019/07/29/Java-Shiro是如何影响自定义BeanPostProcessor
 
 ## 1.解决方案
 
-* 
+* 隔离shiro使用的组件与业务监控的组件。
+如：
+shiro使用的redis实例和业务使用的redis实例不是同一个。
 
 ## 2.场景
 
@@ -59,3 +61,148 @@ public Object postProcessAfterInitialization(Object bean, String beanName) {
 * 尝试把shiro屏蔽，错误信息中的log没了一大部分，自定义的bbp也能进去了，为什么呢？
 
 ### 深入分析
+* shiroFilter依赖了securityManager，securityManager依赖了userRealm，userRealm为了获取AuthenticationInfo和AuthorizationInfo又依赖了redis和mysql。
+* ShiroFitlerFactoryBean这个bean继承了FactoryBean，将SecurityManager提前初始化，并无将初始化过程托管给spring，导致其所有引用的类都没有托管给spring，所以自定义bpp无效。
+#### 测试代码
+
+结果：helloA
+证明：增加了factorybean之后，并不会走自定义bpp
+
+去掉factorybean之后，托管给spring初始化之后
+结果：
+sayHello InitBBean before
+sayHello InitABean before
+helloA
+sayHello InitABean after
+sayHello InitBBean after
+
+##### 测试用例
+```java 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(classes = Conf.class)
+public class BeanPostProcessorTestTest {
+
+    @Autowired
+    BeanPostProcessorATest test;
+
+    @Test
+    public void sayHello() {
+        test.sayHello();
+    }
+}
+```
+##### 被测试代码
+```java
+public interface BeanPostProcessorTest {
+
+    void sayHello();
+}
+```
+```java
+public class BeanPostProcessorATest implements BeanPostProcessorTest {
+
+    @Override
+    public void sayHello(){
+        System.out.println("helloA");
+    }
+}
+```
+```java
+public class BeanPostProcessorBTest implements BeanPostProcessorTest {
+
+    @Override
+    public void sayHello(){
+        System.out.println("helloB");
+    }
+}
+```
+```java
+@Configuration
+@ComponentScan
+public class Conf {
+}
+```
+```java
+
+@Component
+public class InitABean implements FactoryBean<BeanPostProcessorATest>,BeanPostProcessor
+{
+
+    private BeanPostProcessorATest instance;
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+        if(bean instanceof BeanPostProcessorATest){
+            ProxyFactoryBean pfb = new ProxyFactoryBean();
+            pfb.setTarget(bean);
+            pfb.setAutodetectInterfaces(false);
+            NameMatchMethodPointcutAdvisor advisor = new NameMatchMethodPointcutAdvisor();
+            advisor.addMethodName("sayHello");
+            advisor.setAdvice((MethodInterceptor) invocation -> {
+                System.out.println("sayHello InitABean before");
+                Object result = invocation.getMethod().invoke(invocation.getThis(), invocation.getArguments());
+                System.out.println("sayHello InitABean after");
+                return result;
+            });
+            pfb.addAdvisor(advisor);
+
+            return pfb.getObject();
+        }
+        return bean;
+    }
+
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        return bean;
+    }
+
+    @Override
+    public BeanPostProcessorATest getObject() throws Exception {
+        if (this.instance == null) {
+            this.instance = new BeanPostProcessorATest();
+        }
+        return this.instance;
+    }
+
+    @Override
+    public Class<?> getObjectType() {
+        return BeanPostProcessorATest.class;
+    }
+
+    @Override
+    public boolean isSingleton() {
+        return true;
+    }
+}
+```
+```java
+
+@Component
+public class InitBBean implements BeanPostProcessor
+{
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+        if(bean instanceof BeanPostProcessorATest){
+            ProxyFactoryBean pfb = new ProxyFactoryBean();
+            pfb.setTarget(bean);
+            pfb.setAutodetectInterfaces(false);
+            NameMatchMethodPointcutAdvisor advisor = new NameMatchMethodPointcutAdvisor();
+            advisor.addMethodName("sayHello");
+            advisor.setAdvice((MethodInterceptor) invocation -> {
+                System.out.println("sayHello InitBBean before");
+                Object result = invocation.getMethod().invoke(invocation.getThis(), invocation.getArguments());
+                System.out.println("sayHello InitBBean after");
+                return result;
+            });
+            pfb.addAdvisor(advisor);
+
+            return pfb.getObject();
+        }
+        return bean;
+    }
+
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        return bean;
+    }
+}
+```
