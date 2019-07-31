@@ -63,6 +63,7 @@ public Object postProcessAfterInitialization(Object bean, String beanName) {
 ### 深入分析
 * shiroFilter依赖了securityManager，securityManager依赖了userRealm，userRealm为了获取AuthenticationInfo和AuthorizationInfo又依赖了redis和mysql。
 * ShiroFitlerFactoryBean这个bean继承了FactoryBean，将SecurityManager提前初始化，并无将初始化过程托管给spring，导致其所有引用的类都没有托管给spring，所以自定义bpp无效。
+
 #### 测试代码
 
 结果：helloA
