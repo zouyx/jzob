@@ -12,6 +12,7 @@ permalink: /posts/2019/07/29/Java-Shiro是如何影响自定义BeanPostProcessor
 ## 1.解决方案
 
 * 隔离shiro使用的组件与业务监控的组件。
+
 如：shiro使用的redis实例和业务使用的redis实例不使用同一个，但一定要将需要监控的组件托管给spring
 
 ## 2.场景
