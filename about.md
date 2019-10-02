@@ -18,11 +18,11 @@ Java and Golang Coder
 
 ## Roles
 
-高级软件工程师
+资深软件工程师
 
 ## Skills
 
-* **编程语言** - `Java` / `Golang` 
+* **编程语言** - `Java` / `Golang` / `Nodejs`
 * **语言** - `普通话` / `粤语` / `英语` / `日语` 
 
 ## Languages
