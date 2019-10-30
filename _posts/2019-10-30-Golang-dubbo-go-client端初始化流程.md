@@ -11,4 +11,4 @@ dubbo-go client端初始化流程详解
 
 ## 初始化流程
 
-![client-flow](/images/dubbogo/dubbo-go-client.png)
+[![client-flow](/images/dubbogo/dubbo-go-client.png)](/images/dubbogo/dubbo-go-client.png)

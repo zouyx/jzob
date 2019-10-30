@@ -11,4 +11,4 @@ dubbo-go server端初始化流程详解
 
 ## 初始化流程
 
-![server-flow](/images/dubbogo/dubbo-go-server.png)
+[![server-flow](/images/dubbogo/dubbo-go-server.png)](/images/dubbogo/dubbo-go-server.png)
