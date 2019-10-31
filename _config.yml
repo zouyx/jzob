@@ -76,7 +76,7 @@ sass:
 gems:
   - jekyll-sitemap # Create a sitemap using the official Jekyll sitemap gem
   - jekyll-feed # Create an Atom feed using the official Jekyll feed gem
-  - jekyll-paginate # Create paginate
+  - jekyll-paginate-v2 # Create paginate
   - jekyll-menus
   - jekyll-analytics
   - jekyll-seo-tag
@@ -109,8 +109,15 @@ paginate_path: /page:num
 timezone: Asia/Shanghai
 
 #enable paginate
-paginate: 5
-paginate_path: "/post/page:num/"
+pagination: 
+  enabled: true
+  per_page: 5
+  sort_field: 'date'
+  sort_reverse: true
+  trail: 
+    before: 2 # The number of links before the current page
+    after: 2  # The number of links after the current page
+  permalink: "/post/page:num/"
 
 jekyll_analytics:
   GoogleAnalytics:          # Add, if you want to track with Google Analytics
