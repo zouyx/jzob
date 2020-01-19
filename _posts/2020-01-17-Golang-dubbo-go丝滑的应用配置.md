@@ -19,6 +19,10 @@ dubbo是基于各种开源配置中心实现丝滑的应用配置，包括：
 
 配置中心在dubbo-go中主要承担以下场景的职责：
 
+* 作为外部化配置中心，即存储dubbo.properties配置文件，此时，key值通常为文件名如dubbo.properties，value则为配置文件内容。
+* 存储单个配置项，如各种开关项、常量值等。
+* 存储服务治理规则，此时key通常按照"服务名+规则类型"的格式来组织，而value则为具体的治理规则。
+
 基于动态的插件机制在启动时按需加载，达到丝滑配置应用配置的目的。
 
 那在dubbo-go中究竟怎么实现呢？
@@ -78,9 +82,29 @@ config_center:
 * /dubbo/config/dubbo/dubbo.properties 对应全局配置文件
 * /dubbo/config/dubbo/应用名/dubbo.properties 对应指定应用配置文件
 
-#### 节点路径解释
+#### 节点路径
 
-/dubbo/config（配置管理节点默认存放路径）/dubbo（group name）/应用名/dubbo.properties（配置文件名）
+[![key-struct](/images/dubbogo/configcenter/key-struct.jpg)](/images/dubbogo/configcenter/key-struct.jpg)
+
+上图展示了dubbo.properties文件在zookeeper和Apollo中的存储结构：
+
+**zookeeper**
+
+* 命名空间namespace都为：dubbo
+
+* 分组group：全局级别为dubbo，所有应用共享；应用级别为应用名demo-provider，只对该应用生效
+
+* key：dubbo.properties
+
+**Apollo**
+
+* app_id：自由指定，默认：dubbo，最好与zookeeper namespace一致
+
+* cluster：自由指定，最好与zookeeper group一致
+
+* 命名空间namespace：dubbo.properties
+
+zookeeper与Apollo最大的不一样就在于dubbo.properties所在的节点。
 
 
 ## dubbo-go设计
@@ -153,3 +177,5 @@ zookeeper://127.0.0.1:2181?namespace=test
 2. etcd（未支持）
 3. consul（未支持）
 4. 丰富的文件配置格式，如：yml。xml等
+
+本期只分析了配置管理在dubbo-go中怎么设计，实现与使用，以后还会分析服务治理怎么通过配置中心设计与实现，敬请期待哦。
