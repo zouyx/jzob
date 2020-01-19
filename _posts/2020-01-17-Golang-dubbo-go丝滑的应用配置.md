@@ -26,19 +26,21 @@ dubbo是基于各种开源配置中心实现丝滑的应用配置，包括：
 
 ## 整体设计
 
+[![design](/images/dubbogo/configcenter/design.jpg)](/images/dubbogo/configcenter/design.jpg)
+
 优先考虑与现有dubbo设计兼容，dubbo是基于 [dubbo-admin](https://github.com/apache/dubbo-admin) 实现应用级配置管理，以 zookeeper 为例，对服务提供者与服务消费者进行整体流程分析。
 
-# 补整体设计图片
+### 配置管理
 
+**dubbo-admin** 配置管理中增加global配置，zookeeper 中会自动生成其对应配置节点，内容均为 **dubbo-admin** 中设置的配置。
 
+* /dubbo/config/dubbo/dubbo.properties 对应全局配置文件
+* /dubbo/config/dubbo/应用名/dubbo.properties 对应指定应用配置文件
 
-### 服务提供者
+#### 节点路径解释
 
- **dubbo-admin** 中增加test-server 动态配置，zookeeper 中会自动生成其对应配置节点：```/dubbo/test-server/dubbo.properteis``` ，内容为 **dubbo-admin** 中设置的动态配置。
+/dubbo/config（配置管理节点默认存放路径）/dubbo（group name）/应用名/dubbo.properties（配置文件名）
 
-### 服务消费者
-
- **dubbo-admin** 中增加test-client 动态配置，zookeeper 中会自动生成其对应配置节点：```/dubbo/test-client/dubbo.properteis``` ，内容为 **dubbo-admin** 中设置的动态配置。
 
 ## dubbo-go设计
 
@@ -47,14 +49,11 @@ dubbo是基于各种开源配置中心实现丝滑的应用配置，包括：
 
 ### 流程说明
 
-* 服务提供者启动时: 向 /dubbo/com.foo.BarService/providers 目录下写入自己的 URL 地址
-* 服务消费者启动时: 订阅 /dubbo/com.foo.BarService/providers 目录下的提供者 URL 地址。并向 /dubbo/com.foo.BarService/consumers 目录下写入自己的 URL 地址
-
 主要作用于以下两个阶段
 
 * 初始化程序阶段：加载对应的配置中心插件。
 
-* 启动阶段：读取并解析本地配置文件中配置中心信息。初始化配置中心链接，监听数据变更等。
+* 启动阶段：读取并解析本地配置文件中配置中心信息。初始化配置中心链接，读取/dubbo/config/dubbo/dubbo.properties与/dubbo/config/dubbo/应用名/dubbo.properties，并将其加载到内存之中，监听其变更，实时更新至内存。。
 
 ### ConfigCenterFactory
 
@@ -102,6 +101,8 @@ zookeeper://127.0.0.1:2181?namespace=test
 
 
 ## 总结
+
+更加具体的实现，我就不详细论述，大家可以去看源码，欢迎大家持续关注，或者贡献代码。
 
 整个配置中心的功能，麻雀虽小，但五脏俱全。目前并不算是十分完善，但是整个框架层面上来说，是走在了正确的路上。从扩展性来说，是比较便利。目前支持的配置中心还不够丰富，只有zookeeper与apollo，支持的配置文件格式也只有properties，虽然能满足基本使用场景，距离完善还有还长远的路。
 
