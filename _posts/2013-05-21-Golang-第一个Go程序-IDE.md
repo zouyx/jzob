@@ -2,6 +2,7 @@
 layout: post
 title: Golang-第一个Go程序-IDE
 permalink: /posts/2013/5/21/Golang-第一个Go程序-IDE.html
+category: public
 ---
 
 解决Go文件不可执行的问题

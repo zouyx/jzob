@@ -2,6 +2,7 @@
 layout: post
 title: Java-CurrentHashMap高并发实践探索
 permalink: /posts/2016/5/15/Java-CurrentHashMap高并发实践探索.html
+category: public
 ---
 
 在高并发写（增／删）的场景下jdk1.7的CurrentHashMap会发生什么问题呢，以下会为你一一解答。

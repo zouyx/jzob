@@ -2,6 +2,7 @@
 layout: post
 title: Golang-解决eclipse invalid go language settings问题
 permalink: /posts/2013/5/16/Golang-解决eclipse invalid go language settings问题.html
+category: public
 ---
 
 解决eclipse invalid go language settings问题思路
