@@ -13,6 +13,7 @@ pagination:
 
 <div class="posts">
   {% for post in paginator.posts %}
+    {% if post.category !="private" %}
     <article class="post">
 
       <h1><a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>{% if post.top == 1 %} <font color="red">置顶</font> {% endif %}</h1>
@@ -23,6 +24,7 @@ pagination:
 
       <a href="{{ site.baseurl }}{{ post.url }}" class="read-more">Read More</a>
     </article>
+    {% endif %}
   {% endfor %}
 
 

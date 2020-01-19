@@ -2,6 +2,7 @@
 layout: post
 title: dubbo-go实现丝滑的应用配置
 permalink: /posts/2020/01/17/dubbo-go丝滑的应用配置.html
+category: private
 ---
 
 dubbo-go丝滑的应用配置

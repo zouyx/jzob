@@ -3,7 +3,6 @@ layout: post
 title: Java-FlameGraph火焰图
 published: true
 permalink: /posts/2016/2/21/Java-FlameGraph火焰图.html
-category: public
 ---
 
 什么是FlameGraph火焰图？怎么用？以下会为你一一解答。

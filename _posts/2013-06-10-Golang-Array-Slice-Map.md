@@ -2,7 +2,6 @@
 layout: post
 title: Golang-Array-Slice-Map
 permalink: /posts/2013/6/10/Golang-Array-Slice-Map.html
-category: public
 ---
 
 介绍Go三种数组结构
