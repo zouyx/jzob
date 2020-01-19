@@ -13,15 +13,56 @@ dubbo-go丝滑的应用配置
 
 dubbo是基于各种开源配置中心实现丝滑的应用配置，包括：
 
-* [Apollo](https://github.com/ctripcorp/apollo)
-* [zookeeper](https://github.com/apache/zookeeper)
-* [nacos](https://github.com/alibaba/nacos)
+* [Apollo](https://github.com/ctripcorp/apollo):携程框架部门研发的分布式配置中心，能够集中化管理应用不同环境、不同集群的配置，配置修改后能够实时推送到应用端，并且具备规范的权限、流程治理等特性，适用于微服务配置管理场景。
+* [zookeeper](https://github.com/apache/zookeeper)：一个分布式的，开放源码的分布式应用程序协调服务，是Google的Chubby一个开源的实现，是Hadoop和Hbase的重要组件。它是一个为分布式应用提供一致性服务的软件，提供的功能包括：配置维护、域名服务、分布式同步、组服务等。
+* [nacos](https://github.com/alibaba/nacos):alibaba开源的配置管理组件，提供了一组简单易用的特性集，帮助您实现动态服务发现、服务配置管理、服务及流量管理。
+
+配置中心在dubbo-go中主要承担以下场景的职责：
 
 基于动态的插件机制在启动时按需加载，达到丝滑配置应用配置的目的。
 
 那在dubbo-go中究竟怎么实现呢？
 
 实现该部分功能放置于一个独立的子项目中，见：[https://github.com/apache/dubbo-go/tree/master/config_center](https://github.com/apache/dubbo-go/tree/master/config_center)
+
+## 使用方法
+
+在Go里面，使用方法如下：
+
+[![zookeeper-usercase](/images/dubbogo/configcenter/zookeeper-usercase.png)](/images/dubbogo/configcenter/zookeeper-usercase.png)
+
+使用配置中心并不复杂
+
+#### 加载插件
+* zookeeper
+```golang
+_ "github.com/apache/dubbo-go/config_center/zookeeper"
+```
+* Apollo
+```golang
+_ "github.com/apache/dubbo-go/config_center/apollo"
+```
+
+#### 增加配置文件
+
+**zookeeper**
+
+```
+config_center:
+  protocol: "zookeeper"
+  address: "127.0.0.1:2181"
+```
+
+**Apollo**
+
+如果需要使用Apollo作为配置中心，请提前创建namespace：dubbo.properties，用于配置管理。
+```
+config_center:
+  protocol: "apollo"
+  address: "127.0.0.1:8070"
+  app_id: test_app
+  cluster: dev
+```
 
 
 ## 整体设计
@@ -53,7 +94,7 @@ dubbo是基于各种开源配置中心实现丝滑的应用配置，包括：
 
 * 初始化程序阶段：加载对应的配置中心插件。
 
-* 启动阶段：读取并解析本地配置文件中配置中心信息。初始化配置中心链接，读取/dubbo/config/dubbo/dubbo.properties与/dubbo/config/dubbo/应用名/dubbo.properties，并将其加载到内存之中，监听其变更，实时更新至内存。。
+* 启动阶段：读取并解析本地配置文件中配置中心信息。初始化配置中心链接，读取/dubbo/config/dubbo/dubbo.properties与/dubbo/config/dubbo/应用名/dubbo.properties，并将其加载到内存之中，监听其变更，实时更新至内存。
 
 ### ConfigCenterFactory
 
