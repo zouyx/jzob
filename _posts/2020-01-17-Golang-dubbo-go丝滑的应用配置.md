@@ -9,9 +9,10 @@ dubbo-go丝滑的应用配置
 # Let‘s Go!
 -----
 
-之前在Apache/dubbo-go（以下简称dubbo-go）中实现了基于Apollo实现应用级配置管理的功能。但实现当时，并不了解整体项目架构，也花了不少时间了解。
+之前在Apache/dubbo-go（以下简称dubbo-go）中实现了实现应用级配置管理的功能。但实现当时，并不了解整体项目架构，也花了不少时间了解。
 
 dubbo是基于各种开源配置中心实现丝滑的应用配置，包括：
+
 * [Apollo](https://github.com/ctripcorp/apollo)
 * [zookeeper](https://github.com/apache/zookeeper)
 * [nacos](https://github.com/alibaba/nacos)
@@ -22,9 +23,32 @@ dubbo是基于各种开源配置中心实现丝滑的应用配置，包括：
 
 实现该部分功能放置于一个独立的子项目中，见：[https://github.com/apache/dubbo-go/tree/master/config_center](https://github.com/apache/dubbo-go/tree/master/config_center)
 
-## 总体设计
+
+## 整体设计
+
+优先考虑与现有dubbo设计兼容，dubbo是基于 [dubbo-admin](https://github.com/apache/dubbo-admin) 实现应用级配置管理，以 zookeeper 为例，对服务提供者与服务消费者进行整体流程分析。
+
+# 补整体设计图片
+
+
+
+### 服务提供者
+
+ **dubbo-admin** 中增加test-server 动态配置，zookeeper 中会自动生成其对应配置节点：```/dubbo/test-server/dubbo.properteis``` ，内容为 **dubbo-admin** 中设置的动态配置。
+
+### 服务消费者
+
+ **dubbo-admin** 中增加test-client 动态配置，zookeeper 中会自动生成其对应配置节点：```/dubbo/test-client/dubbo.properteis``` ，内容为 **dubbo-admin** 中设置的动态配置。
+
+## dubbo-go设计
 
 [![configCenterClass](/images/dubbogo/configcenter/configcenter-class.jpg)](/images/dubbogo/configcenter/configcenter-class.jpg)
+
+
+### 流程说明
+
+* 服务提供者启动时: 向 /dubbo/com.foo.BarService/providers 目录下写入自己的 URL 地址
+* 服务消费者启动时: 订阅 /dubbo/com.foo.BarService/providers 目录下的提供者 URL 地址。并向 /dubbo/com.foo.BarService/consumers 目录下写入自己的 URL 地址
 
 主要作用于以下两个阶段
 
@@ -50,15 +74,14 @@ dubbo是基于各种开源配置中心实现丝滑的应用配置，包括：
 配置文件中配置
 ```
 config_center:
-  protocol: apollo
-  address: 10.1.22.33:8080
-  app_id: test
-  cluster: dev
+  protocol: zookeeper
+  address: 127.0.0.1:2181
+  namespace: test
 ```
 
 dubbo-go内部会解析为
 ```
-apollo://10.1.22.33:8080?app_id=test&cluster=dev
+zookeeper://127.0.0.1:2181?namespace=test
 ```
 在内部传递，用于初始化配置中心链接。
 
@@ -87,4 +110,4 @@ apollo://10.1.22.33:8080?app_id=test&cluster=dev
 1. nacos（已有pr，正在review）
 2. etcd（未支持）
 3. consul（未支持）
-4. 丰富的文件配置格式，如：yml。xml等。
+4. 丰富的文件配置格式，如：yml。xml等
