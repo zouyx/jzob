@@ -10,7 +10,7 @@ dubbo-go 丝滑的应用配置
 # Let‘s Go!
 -----
 
-之前在 Apache/dubbo-go（以下简称 dubbo-go ）中实现了实现应用级配置管理的功能。但实现当时，并不了解整体项目架构，也花了不少时间了解。
+之前在 Apache/dubbo-go（以下简称 dubbo-go ）中实现应用级配置管理的功能。但实现当时，并不了解整体项目架构，也花了不少时间了解。
 
 dubbo 是基于各种开源配置中心实现丝滑的应用配置，包括：
 
@@ -78,7 +78,7 @@ config_center:
 
 ### 配置管理
 
-**dubbo-admin** 配置管理中增加global配置，zookeeper 中会自动生成其对应配置节点，内容均为 **dubbo-admin** 中设置的配置。
+**dubbo-admin** 配置管理中增加 global 配置，zookeeper 中会自动生成其对应配置节点，内容均为 **dubbo-admin** 中设置的配置。
 
 * /dubbo/config/dubbo/dubbo.properties 对应全局配置文件。
 * /dubbo/config/dubbo/应用名/dubbo.properties 对应指定应用配置文件。
@@ -117,7 +117,7 @@ zookeeper 与 Apollo 最大的不一样就在于 dubbo.properties 所在的节�
 
 主要作用于以下两个阶段
 
-* 初始化程序阶段：加载对应的配置中心插件。
+* 初始化程序阶段：加载对应的配置中心所需的插件。
 
 * 启动阶段：读取并解析本地配置文件中配置中心信息。初始化配置中心链接，读取 /dubbo/config/dubbo/dubbo.properties 与 /dubbo/config/dubbo/应用名/dubbo.properties ，并将其加载到内存之中，监听其变更，实时更新至内存。
 
@@ -160,8 +160,6 @@ zookeeper://127.0.0.1:2181?namespace=test
 * 删除监听器：删除已有监听器（受限于配置中心 client 端实现，目前所知 nacos client 没有提供该方法）。
 * 获取路由配置：获取路由表配置。
 * 获取应用级配置：获取应用层级配置，如：协议类型配置等。
-
-等
 
 [![dynamicConfiguration](/images/dubbogo/configcenter/dynamicConfiguration.png)](/images/dubbogo/configcenter/dynamicConfiguration.png)
 
