@@ -14,8 +14,8 @@ dubbo-go 丝滑的应用配置
 
 dubbo 是基于各种开源配置中心实现丝滑的应用配置，包括：
 
-* [Apollo](https://github.com/ctripcorp/apollo) : 携程框架部门研发的分布式配置中心，能够集中化管理应用不同环境、不同集群的配置，配置修改后能够实时推送到应用端，并且具备规范的权限、流程治理等特性，适用于微服务配置管理场景。
-* [zookeeper](https://github.com/apache/zookeeper) : 一个分布式的，开放源码的分布式应用程序协调服务，是 Google 的 Chubby 一个开源的实现，是 Hadoop 和 Hbase 的重要组件。它是一个为分布式应用提供一致性服务的软件，提供的功能包括：配置维护、域名服务、分布式同步、组服务等。
+* [Apollo](https://github.com/ctripcorp/apollo) ：携程框架部门研发的分布式配置中心，能够集中化管理应用不同环境、不同集群的配置，配置修改后能够实时推送到应用端，并且具备规范的权限、流程治理等特性，适用于微服务配置管理场景。
+* [zookeeper](https://github.com/apache/zookeeper) ：一个分布式的，开放源码的分布式应用程序协调服务，是 Google 的 Chubby 一个开源的实现，是 Hadoop 和 Hbase 的重要组件。它是一个为分布式应用提供一致性服务的软件，提供的功能包括：配置维护、域名服务、分布式同步、组服务等。
 * [nacos](https://github.com/alibaba/nacos) : Alibaba 开源的配置管理组件，提供了一组简单易用的特性集，帮助您实现动态服务发现、服务配置管理、服务及流量管理。
 
 配置中心在 dubbo-go 中主要承担以下场景的职责：
@@ -60,7 +60,7 @@ config_center:
 
 **Apollo**
 
-如果需要使用 Apollo 作为配置中心，请提前创建 namespace : dubbo.properties , 用于配置管理。
+如果需要使用 Apollo 作为配置中心，请提前创建 namespace : dubbo.properties ，用于配置管理。
 ```
 config_center:
   protocol: "apollo"
@@ -93,13 +93,13 @@ config_center:
 
 * 命名空间 namespace 都为： dubbo
 
-* 分组 group ：全局级别为 dubbo , 所有应用共享；应用级别为应用名 demo-provider , 只对该应用生效
+* 分组 group ：全局级别为 dubbo , 所有应用共享；应用级别为应用名 demo-provider ，只对该应用生效
 
 * key : dubbo.properties
 
 **Apollo**
 
-* app_id : 自由指定，默认： dubbo , 最好与 zookeeper  namespace 一致
+* app_id : 自由指定，默认： dubbo ，最好与 zookeeper  namespace 一致
 
 * cluster : 自由指定，最好与 zookeeper group 一致
 
@@ -119,7 +119,7 @@ zookeeper 与 Apollo 最大的不一样就在于 dubbo.properties 所在的节�
 
 * 初始化程序阶段：加载对应的配置中心所需的插件。
 
-* 启动阶段：读取并解析本地配置文件中配置中心信息。初始化配置中心链接，读取 /dubbo/config/dubbo/dubbo.properties 与 /dubbo/config/dubbo/应用名/dubbo.properties , 并将其加载到内存之中，监听其变更，实时更新至内存。
+* 启动阶段：读取并解析本地配置文件中配置中心信息。初始化配置中心链接，读取 /dubbo/config/dubbo/dubbo.properties 与 /dubbo/config/dubbo/应用名/dubbo.properties ，并将其加载到内存之中，监听其变更，实时更新至内存。
 
 ### ConfigCenterFactory
 
@@ -130,7 +130,7 @@ zookeeper 与 Apollo 最大的不一样就在于 dubbo.properties 所在的节�
 
 ### DynamicConfigurationFactory
 
-整个动态配置中心的关键点就在 DynamicConfigurationFactory 上，其中通过解析内部自定义的 URL , 获取其协议类型，反射其参数，用于创建配置中心的链接。
+整个动态配置中心的关键点就在 DynamicConfigurationFactory 上，其中通过解析内部自定义的 URL ，获取其协议类型，反射其参数，用于创建配置中心的链接。
 
 [![configurationFactory](/images/dubbogo/configcenter/configurationFactory.png)](/images/dubbogo/configcenter/configurationFactory.png)
 
@@ -168,7 +168,7 @@ zookeeper://127.0.0.1:2181?namespace=test
 
 更加具体的实现，我就不详细论述，大家可以去看源码，欢迎大家持续关注，或者贡献代码。
 
-整个配置中心的功能，麻雀虽小，但五脏俱全。目前并不算是十分完善，但是整个框架层面上来说，是走在了正确的路上。从扩展性来说，是比较便利。目前支持的配置中心还不够丰富，只有 zookeeper 与 Apollo ，支持的配置文件格式也只有 properties , 虽然能满足基本使用场景，距离完善还有还长远的路。
+整个配置中心的功能，麻雀虽小，但五脏俱全。目前并不算是十分完善，但是整个框架层面上来说，是走在了正确的路上。从扩展性来说，是比较便利。目前支持的配置中心还不够丰富，只有 zookeeper 与 Apollo ，支持的配置文件格式也只有 properties ，虽然能满足基本使用场景，距离完善还有还长远的路。
 
 未来计划：
 
@@ -176,5 +176,3 @@ zookeeper://127.0.0.1:2181?namespace=test
 2. etcd（未支持）
 3. consul（未支持）
 4. 丰富的文件配置格式，如： yml , xml 等
-
-本期只分析了配置管理在 dubbo-go 中怎么设计，实现与使用，以后还会分析服务治理怎么通过配置中心设计与实现，敬请期待哦。
