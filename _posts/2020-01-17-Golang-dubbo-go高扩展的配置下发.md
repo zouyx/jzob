@@ -5,14 +5,27 @@ permalink: /posts/2020/01/17/dubbo-go 高扩展的配置下发.html
 category: private
 ---
 
-dubbo-go 丝滑的应用配置
+dubbo-go 高扩展的配置下发
 
 # Let‘s Go!
 -----
 
-之前在 Apache/dubbo-go（以下简称 dubbo-go ）中实现应用级配置下发管理的功能。但实现当时，并不了解整体项目架构，也花了不少时间了解。
+之前在 Apache/dubbo-go（以下简称 dubbo-go ）社区中，有同志希望配置文件可以放置于配置管理中心，不仅放置于本地。放置于本地及配置管理中心究竟有什么不一样呢？
 
-dubbo 是基于各种开源配置中心实现丝滑的应用配置，包括：
+# 背景
+
+放置于本地，每次更新需要重启，配置文件管理困难，人工版本控制，在微服务的场景下，大大的增加了运维的成本与难度。而配置管理中心提供统一的配置文件管理，提供文件更新实时同步，统一版本控制，权限管理等功能。
+
+# 目标
+
+基于以上几个背景，可以总结出以下 **目标**
+
+* 与 dubbo 现有的配置中心内的配置文件兼容，降低新增语言栈的学习成本。
+* 支持主流配置中心，适应不一样的使用场景，实现高扩展的配置下发。
+
+# 配置中心
+
+dubbo-go 应支持 dubbo 中所有支持的各种开源配置中心，包括：
 
 * [Apollo](https://github.com/ctripcorp/apollo) ：携程框架部门研发的分布式配置中心，能够集中化管理应用不同环境、不同集群的配置，配置修改后能够实时推送到应用端，并且具备规范的权限、流程治理等特性，适用于微服务配置管理场景。
 * [zookeeper](https://github.com/apache/zookeeper) ：一个分布式的，开放源码的分布式应用程序协调服务，是 Google 的 Chubby 一个开源的实现，是 Hadoop 和 Hbase 的重要组件。它是一个为分布式应用提供一致性服务的软件，提供的功能包括：配置维护、域名服务、分布式同步、组服务等。
@@ -74,7 +87,7 @@ config_center:
 
 [![design](/images/dubbogo/configcenter/design.jpg)](/images/dubbogo/configcenter/design.jpg)
 
-优先考虑与现有 dubbo 设计兼容，dubbo 是基于 [dubbo-admin](https://github.com/apache/dubbo-admin) 实现应用级配置下发管理，以 zookeeper 为例，对服务提供者与服务消费者进行整体流程分析。
+优先考虑与现有 dubbo 设计兼容，从而降低使用者的学习成本，[dubbo-admin](https://github.com/apache/dubbo-admin) 作为服务提供者实现应用级配置管理， dubbo-go 作为消费端实现配置下发管理功能。以 zookeeper 为例，对服务提供者与服务消费者进行整体流程分析。
 
 ### 配置管理
 
@@ -110,16 +123,23 @@ zookeeper 与 Apollo 最大的不一样就在于 dubbo.properties 所在的节�
 
 ## dubbo-go设计
 
+dubbo-go 中实现高扩展的配置下发管理。
+
+原逻辑为：启动时读取本地配置文件，将其加载进内存，通过配置文件中的配置读取注册中心的信息获取服务提供者，注册服务消费者。
+
+在改造的时，需要考虑以下的问题
+
+1. 如何实现支持多个配置中心？如何实现按需加载？
+
+通过抽象 ```DynamicConfiguration``` 让开发者可以快速支持多个配置中心。
+
+使用者导入指定的组件包后，在启动阶段将需要的组件加载进内存中，以便给程序按需调用，如下图绿色部分。
+
+2. 配置中心的配置加载阶段在什么时候？
+
+应在读取配置文件阶段后，读取并解析本地配置文件中配置中心信息。初始化配置中心链接，读取 /dubbo/config/dubbo/dubbo.properties 与 /dubbo/config/dubbo/应用名/dubbo.properties ，并将其加载到内存之中覆盖原有配置，监听其变更，实时更新至内存，如下图蓝色部分。
+
 [![configCenterClass](/images/dubbogo/configcenter/configcenter-class.jpg)](/images/dubbogo/configcenter/configcenter-class.jpg)
-
-
-### 流程说明
-
-主要作用于以下两个阶段
-
-* 初始化程序阶段：加载对应的配置中心所需的插件。
-
-* 启动阶段：读取并解析本地配置文件中配置中心信息。初始化配置中心链接，读取 /dubbo/config/dubbo/dubbo.properties 与 /dubbo/config/dubbo/应用名/dubbo.properties ，并将其加载到内存之中，监听其变更，实时更新至内存。
 
 ### ConfigCenterFactory
 
