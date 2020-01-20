@@ -1,7 +1,7 @@
 ---
 layout: post
-title: dubbo-go 实现丝滑的应用配置
-permalink: /posts/2020/01/17/dubbo-go 丝滑的应用配置.html
+title: dubbo-go 高扩展的配置下发
+permalink: /posts/2020/01/17/dubbo-go 高扩展的配置下发.html
 category: private
 ---
 
@@ -10,7 +10,7 @@ dubbo-go 丝滑的应用配置
 # Let‘s Go!
 -----
 
-之前在 Apache/dubbo-go（以下简称 dubbo-go ）中实现应用级配置管理的功能。但实现当时，并不了解整体项目架构，也花了不少时间了解。
+之前在 Apache/dubbo-go（以下简称 dubbo-go ）中实现应用级配置下发管理的功能。但实现当时，并不了解整体项目架构，也花了不少时间了解。
 
 dubbo 是基于各种开源配置中心实现丝滑的应用配置，包括：
 
@@ -74,7 +74,7 @@ config_center:
 
 [![design](/images/dubbogo/configcenter/design.jpg)](/images/dubbogo/configcenter/design.jpg)
 
-优先考虑与现有 dubbo 设计兼容，dubbo 是基于 [dubbo-admin](https://github.com/apache/dubbo-admin) 实现应用级配置管理，以 zookeeper 为例，对服务提供者与服务消费者进行整体流程分析。
+优先考虑与现有 dubbo 设计兼容，dubbo 是基于 [dubbo-admin](https://github.com/apache/dubbo-admin) 实现应用级配置下发管理，以 zookeeper 为例，对服务提供者与服务消费者进行整体流程分析。
 
 ### 配置管理
 
