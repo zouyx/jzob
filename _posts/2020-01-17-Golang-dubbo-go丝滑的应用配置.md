@@ -50,7 +50,7 @@ _ "github.com/apache/dubbo-go/config_center/apollo"
 
 #### 增加配置文件
 
-**zookeeper**
+* zookeeper
 
 ```
 config_center:
@@ -58,7 +58,7 @@ config_center:
   address: "127.0.0.1:2181"
 ```
 
-**Apollo**
+* Apollo
 
 如果需要使用 Apollo 作为配置中心，请提前创建 namespace : dubbo.properties ，用于配置管理。
 ```
