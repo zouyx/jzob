@@ -2,7 +2,6 @@
 layout: post
 title: dubbo-go 高扩展的配置下发
 permalink: /posts/2020/01/17/dubbo-go 高扩展的配置下发.html
-category: private
 ---
 
 dubbo-go 高扩展的配置下发
