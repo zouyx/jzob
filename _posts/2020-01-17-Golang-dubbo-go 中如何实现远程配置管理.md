@@ -1,30 +1,34 @@
 ---
 layout: post
-title: dubbo-go 高扩展的配置下发
-permalink: /posts/2020/01/17/dubbo-go 高扩展的配置下发.html
-category: private
+title: dubbo-go 中如何实现远程配置管理
+permalink: /posts/2020/01/17/dubbo-go 中如何实现远程配置管理.html
 ---
 
-dubbo-go 高扩展的配置下发
+dubbo-go 中如何实现远程配置管理
 
 # Let‘s Go!
 -----
 
 之前在 Apache/dubbo-go（以下简称 dubbo-go ）社区中，有同志希望配置文件可以放置于配置管理中心，不仅放置于本地。放置于本地及配置管理中心究竟有什么不一样呢？
 
-放置于本地，每次更新需要重启，配置文件管理困难，无法做到实时更新即刻生效。本地文件还依赖人工版本控制，在微服务的场景下，大大的增加了运维的成本与难度。
+# 背景
 
-而配置管理中心提供统一的配置文件管理，提供文件更新实时同步，统一版本控制，权限管理等功能。
+放置于本地，每次更新需要重启，配置文件管理困难，人工版本控制，在微服务的场景下，大大的增加了运维的成本与难度。而配置管理中心提供统一的配置文件管理，提供文件更新实时同步，统一版本控制，权限管理等功能。
 
 # 目标
 
 基于以上几个背景，可以总结出以下 **目标**
 
-* 与 dubbo 现有的配置中心内的配置文件兼容，降低新增语言栈的学习成本；
-* 支持多种配置文件格式；
-* 支持主流配置中心，适应不一样的使用场景，实现高扩展的配置下发；
+* 与 dubbo 现有的配置中心内的配置文件兼容，降低新增语言栈的学习成本。
+* 支持主流配置中心，适应不一样的使用场景，实现高扩展的配置下发。
 
 # 配置中心
+
+dubbo-go 应支持 dubbo 中所有支持的各种开源配置中心，包括：
+
+* [Apollo](https://github.com/ctripcorp/apollo) ：携程框架部门研发的分布式配置中心，能够集中化管理应用不同环境、不同集群的配置，配置修改后能够实时推送到应用端，并且具备规范的权限、流程治理等特性，适用于微服务配置管理场景。
+* [zookeeper](https://github.com/apache/zookeeper) ：一个分布式的，开放源码的分布式应用程序协调服务，是 Google 的 Chubby 一个开源的实现，是 Hadoop 和 Hbase 的重要组件。它是一个为分布式应用提供一致性服务的软件，提供的功能包括：配置维护、域名服务、分布式同步、组服务等。
+* [nacos](https://github.com/alibaba/nacos) : Alibaba 开源的配置管理组件，提供了一组简单易用的特性集，帮助您实现动态服务发现、服务配置管理、服务及流量管理。
 
 配置中心在 dubbo-go 中主要承担以下场景的职责：
 
@@ -32,27 +36,20 @@ dubbo-go 高扩展的配置下发
 * 存储单个配置项，如各种开关项、常量值等。
 * 存储服务治理规则，此时 key 通常按照 “服务名 + 规则类型” 的格式来组织，而 value 则为具体的治理规则。
 
-就目前而言，dubbo-go 首要支持 dubbo 中所有支持的各种开源配置中心，包括：
+基于动态的插件机制在启动时按需加载，达到丝滑配置应用配置的目的。
 
-* [Apollo](https://github.com/ctripcorp/apollo) ：携程框架部门研发的分布式配置中心，能够集中化管理应用不同环境、不同集群的配置，配置修改后能够实时推送到应用端，并且具备规范的权限、流程治理等特性，适用于微服务配置管理场景。
-* [zookeeper](https://github.com/apache/zookeeper) ：一个分布式的，开放源码的分布式应用程序协调服务，是 Google 的 Chubby 一个开源的实现，是 Hadoop 和 Hbase 的重要组件。它是一个为分布式应用提供一致性服务的软件，提供的功能包括：配置维护、域名服务、分布式同步、组服务等。
-* [nacos](https://github.com/alibaba/nacos) : Alibaba 开源的配置管理组件，提供了一组简单易用的特性集，帮助您实现动态服务发现、服务配置管理、服务及流量管理。
-
-而考虑到某些公司内部有自身的研发的配置中心，又或者当前流行而 dubbo 尚未支持的配置中心，如 etcd，我们的核心在于设计一套机制，允许我们——也包括用户——可以通过扩展接口新的实现，来快速接入不同的配置中心。
-
-那在 dubbo-go 中究竟怎么实现呢？我们的答案是：基于动态的插件机制在启动时按需加载配置中心的不同实现。
+那在 dubbo-go 中究竟怎么实现呢？
 
 实现该部分功能放置于一个独立的子项目中，见：[https://github.com/apache/dubbo-go/tree/master/config_center](https://github.com/apache/dubbo-go/tree/master/config_center)
 
+
 ## dubbo-go设计
+
+dubbo-go 中实现高扩展的配置下发管理。
 
 原逻辑为：启动时读取本地配置文件，将其加载进内存，通过配置文件中的配置读取注册中心的信息获取服务提供者，注册服务消费者。
 
-有些读者会有点困惑，不是说好了使用配置中心的，为什么现在又要读取本地配置呢？答案就是，读取的这部分信息分成两部分：
-1. 使用什么作为配置中心；
-2. 该配置中心的元数据，比如说使用 zookeeper 作为配置中心，那么 zookeeper 的链接信息就是元数据，毕竟我们只有在知道了链接信息之后才能连上 zookeeper；
-
-在改造的时候，需要考虑以下的问题
+在改造的时，需要考虑以下的问题
 
 1. 如何实现支持多个配置中心？如何实现按需加载？
 
@@ -108,13 +105,13 @@ zookeeper://127.0.0.1:2181?namespace=test
 
 [![dynamicConfiguration](/images/dubbogo/configcenter/dynamicConfiguration.png)](/images/dubbogo/configcenter/dynamicConfiguration.png)
 
-## 整体设计 ==》 使用 zookeeper 作为例子来说一下怎么实现上面的接口
+## 实现
 
 [![design](/images/dubbogo/configcenter/design.jpg)](/images/dubbogo/configcenter/design.jpg)
 
 优先考虑与现有 dubbo 设计兼容，从而降低使用者的学习成本，[dubbo-admin](https://github.com/apache/dubbo-admin) 作为服务提供者实现应用级配置管理， dubbo-go 作为消费端实现配置下发管理功能。以 zookeeper 为例，对服务提供者与服务消费者进行整体流程分析。
 
-### 配置管理
+### 如何存储配置管理
 
 **dubbo-admin** 配置管理中增加 global 配置，zookeeper 中会自动生成其对应配置节点，内容均为 **dubbo-admin** 中设置的配置。
 
@@ -145,14 +142,53 @@ zookeeper://127.0.0.1:2181?namespace=test
 
 zookeeper 与 Apollo 最大的不一样就在于 dubbo.properties 所在的节点。
 
+## 实现配置管理中心支持
+
+以 Apollo 为例，简单的介绍，如何实现支持一个新的配置管理中心。
+
+### 选择配置管理中心 Client / SDK
+
+本例中使用的 Apollo Go Client 为：[https://github.com/zouyx/agollo](https://github.com/zouyx/agollo)。
+
+**PS**: 如没找到，自己实现也是可以的哦。
+
+### 节点路径
+
+因为每个配置管理中心的存储结构各有特点，导致 dubbo 在使用外部配置管理中心时，存储配置节点的结构不一样。在 [dubbo-configcenter](https://github.com/apache/dubbo/tree/master/dubbo-configcenter) 找到希望支持的配置管理中心，而本例中 Apollo 则在 [ApolloDynamicConfiguration.java](https://github.com/apache/dubbo/blob/master/dubbo-configcenter/dubbo-configcenter-apollo/src/main/java/org/apache/dubbo/configcenter/support/apollo/ApolloDynamicConfiguration.java) 。
+
+注释中表明，Apollo namespace = governance (governance .properties) 用于治理规则，namespace = dubbo (dubbo.properties) 用于配置文件。
+
+### 实现 DynamicConfiguration
+
+新建创建客户端方法，最好客户端保持为单例。
+
+[![apollo-support](/images/dubbogo/configcenter/apollo-support.png)](/images/dubbogo/configcenter/apollo-support.png)
+
+以下为必须实现的方法，以下方法用于获取配置中心配置。
+
+* GetInternalProperty：在配置文件（Apollo 为 namespace）中，根据 key 获取对应 value；
+* GetRule：获取治理配置文件（Apollo 为 namespace）；
+* GetProperties：获取整个配置文件（Apollo 为 namespace）；
+
+可选择实现的方法，如不实现，则不能动态更新 dubbo-go 中配置信息。
+
+* RemoveListener
+* AddListener
+
+而 Parser & SetParser 使用默认实现即可，默认为 Properties 转换器。
+
+更多信息，参考：[dubbo-go-apollo](https://github.com/apache/dubbo-go/tree/master/config_center/apollo) 。
+
+
 ## 使用方法
 
-从上面的设计里面，也能大概猜到怎么使用了：
+在 Go 里面，使用方法如下：
 
 [![zookeeper-usercase](/images/dubbogo/configcenter/zookeeper-usercase.png)](/images/dubbogo/configcenter/zookeeper-usercase.png)
 
-很显然，使用配置中心并不复杂，只需要把对应的依赖引入进来。在包初始化的时候，会创建出来对应的配置中心的实现。比如说加载 zookeeper 或者 Apollo 作为配置中心：
+使用配置中心并不复杂。
 
+#### 加载插件
 * zookeeper
 ```golang
 _ "github.com/apache/dubbo-go/config_center/zookeeper"
@@ -162,7 +198,7 @@ _ "github.com/apache/dubbo-go/config_center/zookeeper"
 _ "github.com/apache/dubbo-go/config_center/apollo"
 ```
 
-当然仅仅加载还不够，比如说虽然我加载了 zookeeper，但是我还需要知道怎么连上这个配置中心，即前面提到的配置中心的元数据，这部分信息是需要在**本地**配置出来的。比如说：
+#### 增加配置文件
 
 * zookeeper
 
