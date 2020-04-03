@@ -39,19 +39,38 @@ dubbo-go 中如何实现路由策略功能
 
 除此之外，还有几个问题是需要优先考虑：
 
-1.需要设计什么接口？如何设计接口？为什么要这么设计接口？
+1.需要什么功能？
 
+* 通过配置信息生成路由策略，包括：读取并解析本地配置文件，读取并解析远端配置文件。以责任链模式串联起来。
+* 通过路由策略，匹配本地信息与远端服务信息，过滤出可以调用的远端节点，再进行负载均衡。
 
+2.如何设计接口？
 
-2.如何实现本地与远程路由策略配置加载？
+通过第一点，我们能设计出以下接口来实现所需的功能。
+
+* 路由策略接口：用于路由策略过滤出可以调用的远端节点。
+
+* 路由策略责任链接口：允许执行多个路由策略。
+
+* 配置信息生成路由策略接口：解析内部配置信息（common.URL）生成对应的路由策略。
+
+* 配置文件生成路由策略接口：解析配置文件生成对应的路由策略。
+
+3.如何实现本地与远程路由策略配置加载？
 
 * 本地路由策略配置：在原配置加载阶段，新增读取路由配置文件。使用 ```FIleRouterFactory``` 解析后，生成对应路由策略，放置到内存中备用。
 * 远程路由策略配置：在 zookeeper 注册并监听静态资源目录后。读取静态资源，筛选符合路由策略配置信息，通过 ```RouterFactory``` 生成对应路由策略，放置到内存中备用。
 
 
 ## Router
-通过使用本实例路由策略匹配远程实例的路由策略。
+匹配及过滤远程实例的路由策略。
 ![router.png](/images/dubbogo/router/router.png)
+目前已有实现类包括：
+* listenableRouter: 
+* AppRouter：
+* ConditionRouter：
+* HealthCheckRouter:
+* FileConditionRouter:
 
 
 ## RouterChain
@@ -63,5 +82,5 @@ dubbo-go 中如何实现路由策略功能
 ![file-router-factory.png](/images/dubbogo/router/file-router-factory.png)
 
 ## RouterFactory
-生成读取远程配置中心生成路由侧露的工厂类。
+通过配置信息生成路由策略的工厂类。
 ![router-factory.png](/images/dubbogo/router/router-factory.png)
