@@ -37,4 +37,4 @@ Java and Golang Coder
 
 ## Contact me
 
-[yixian.zou@gmail.com](mailto:yixian.zou@gmail.com)
+[joezou@apache.org](mailto:joezou@apache.org)
