@@ -22,7 +22,3 @@ published: true
 ![main](/images/val/val.png)
 
    使用vue.js编写计算器桌面应用  
-
-## Contact me
-
-[yixian.zou@gmail.com](mailto:yixian.zou@gmail.com)
