@@ -1,0 +1,52 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - master
+      - pages-*
+
+env:
+  NOKOGIRI_USE_SYSTEM_LIBRARIES: "true"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+          bundler-cache: true
+
+      - name: Install system dependencies
+        run: sudo apt-get install -y libcurl4-openssl-dev
+
+      - name: Install Jekyll and plugins
+        run: |
+          gem install jekyll -v 3.8.6
+          gem install jekyll-sitemap jekyll-feed jekyll-paginate-v2 jekyll-menus jekyll-analytics jekyll-seo-tag
+
+      - name: Build site
+        run: JEKYLL_ENV=production jekyll build --destination ./_site
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/master'
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+        run: |
+          cd ./_site
+          git init
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git remote add origin https://github.com/zouyx/zouyx.github.io.git
+          git config credential.helper '!f() { echo username=x-access-token; echo password=$TOKEN; }; f'
+          git add --all .
+          git commit -m "GitHub Actions Auto Builder"
+          git push --quiet --force origin master
