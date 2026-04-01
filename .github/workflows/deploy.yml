@@ -14,6 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout source
@@ -36,17 +42,13 @@ jobs:
       - name: Build site
         run: JEKYLL_ENV=production jekyll build --destination ./_site
 
+      - name: Upload Pages artifact
+        if: github.ref == 'refs/heads/master'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/master'
-        env:
-          TOKEN: ${{ secrets.TOKEN }}
-        run: |
-          cd ./_site
-          git init
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git remote add origin https://github.com/zouyx/zouyx.github.io.git
-          git config credential.helper '!f() { echo username=x-access-token; echo password=$TOKEN; }; f'
-          git add --all .
-          git commit -m "GitHub Actions Auto Builder"
-          git push --quiet --force origin master
+        id: deployment
+        uses: actions/deploy-pages@v4
