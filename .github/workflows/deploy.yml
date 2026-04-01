@@ -22,7 +22,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.1'
+          ruby-version: '3.3'
           bundler-cache: true
 
       - name: Install system dependencies
@@ -30,8 +30,8 @@ jobs:
 
       - name: Install Jekyll and plugins
         run: |
-          gem install jekyll -v 3.8.6
-          gem install jekyll-sitemap jekyll-feed jekyll-paginate-v2 jekyll-menus jekyll-analytics jekyll-seo-tag
+          gem install jekyll -v 4.4.1
+          gem install kramdown-parser-gfm jekyll-sitemap jekyll-feed jekyll-paginate-v2 jekyll-menus jekyll-analytics jekyll-seo-tag
 
       - name: Build site
         run: JEKYLL_ENV=production jekyll build --destination ./_site
