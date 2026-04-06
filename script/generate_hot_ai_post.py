@@ -26,6 +26,7 @@ QUOTE_WEIGHT = 2
 REPLY_WEIGHT = 3
 MAX_ANALYSIS_TOKENS = 2200
 MAX_SLUG_LENGTH = 60
+POST_FILENAME_PREFIX = "AI"
 
 
 @dataclass
@@ -219,12 +220,17 @@ def already_generated(posts_dir: Path, post: HotPost) -> bool:
     return False
 
 
+def build_post_path(posts_dir: Path, slug: str, suffix: int | None = None) -> Path:
+    suffix_text = f"-{suffix}" if suffix is not None else ""
+    filename = f"{datetime.now():%Y-%m-%d}-{POST_FILENAME_PREFIX}-{slug}{suffix_text}.md"
+    return posts_dir / filename
+
+
 def write_post(posts_dir: Path, analysis: dict[str, str], content: str) -> Path:
-    filename = f"{datetime.now():%Y-%m-%d}-AI-{analysis['slug']}.md"
-    path = posts_dir / filename
+    path = build_post_path(posts_dir, analysis["slug"])
     suffix = 1
     while path.exists():
-        path = posts_dir / f"{datetime.now():%Y-%m-%d}-AI-{analysis['slug']}-{suffix}.md"
+        path = build_post_path(posts_dir, analysis["slug"], suffix)
         suffix += 1
     path.write_text(content, encoding="utf-8")
     return path
