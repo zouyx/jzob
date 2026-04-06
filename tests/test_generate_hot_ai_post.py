@@ -16,29 +16,27 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GenerateHotAIPostTests(unittest.TestCase):
-    def test_select_latest_model_id_prefers_newest_openai_gpt_text_model(self):
-        models = [
-            {
-                "id": "openai/gpt-4.1-mini",
-                "version": "2025-04-14",
-                "supported_input_modalities": ["text"],
-                "supported_output_modalities": ["text"],
-            },
-            {
-                "id": "openai/gpt-5",
-                "version": "2026-03-01",
-                "supported_input_modalities": ["text"],
-                "supported_output_modalities": ["text"],
-            },
-            {
-                "id": "openai/whisper",
-                "version": "2026-04-01",
-                "supported_input_modalities": ["audio"],
-                "supported_output_modalities": ["text"],
-            },
-        ]
+    def test_resolve_model_uses_default_gpt5_when_not_overridden(self):
+        original_value = MODULE.os.environ.get("MODELS_MODEL")
+        try:
+            MODULE.os.environ.pop("MODELS_MODEL", None)
+            self.assertEqual(MODULE.resolve_model(), "openai/gpt-5")
+        finally:
+            if original_value is None:
+                MODULE.os.environ.pop("MODELS_MODEL", None)
+            else:
+                MODULE.os.environ["MODELS_MODEL"] = original_value
 
-        self.assertEqual(MODULE.select_latest_model_id(models), "openai/gpt-5")
+    def test_resolve_model_prefers_explicit_override(self):
+        original_value = MODULE.os.environ.get("MODELS_MODEL")
+        try:
+            MODULE.os.environ["MODELS_MODEL"] = "openai/gpt-5-mini"
+            self.assertEqual(MODULE.resolve_model(), "openai/gpt-5-mini")
+        finally:
+            if original_value is None:
+                MODULE.os.environ.pop("MODELS_MODEL", None)
+            else:
+                MODULE.os.environ["MODELS_MODEL"] = original_value
 
     def test_already_generated_today_only_matches_today_ai_posts(self):
         now = datetime(2026, 4, 6, 2, 0, tzinfo=UTC)

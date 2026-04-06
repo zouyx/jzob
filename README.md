@@ -11,7 +11,7 @@
 3. 将生成的 Markdown 文章写入 `_posts/` 并提交到 `master`；
 4. 由现有 deploy workflow 自动构建并发布站点。
 
-默认情况下，生成脚本会自动从 GitHub Models 服务端目录中选择最新可用的 OpenAI GPT 模型；如需固定模型，可在手动触发工作流时填写 `model` 输入。
+默认情况下，生成脚本使用 `openai/gpt-5`；如需临时切换模型，可在手动触发工作流时填写 `model` 输入覆盖默认值。
 
 需要在仓库 Secrets 中配置：
 

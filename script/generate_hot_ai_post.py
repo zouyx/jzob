@@ -25,7 +25,6 @@ POSTS_DIR = REPO_ROOT / "_posts"
 DEFAULT_QUERY = 'AI OR "artificial intelligence" OR OpenAI OR Anthropic OR Claude OR Gemini OR DeepSeek OR Copilot when:1d'
 GOOGLE_NEWS_RSS_URL = os.environ.get("GOOGLE_NEWS_RSS_URL", "https://news.google.com/rss/search")
 MODELS_API_URL = os.environ.get("MODELS_API_URL", "https://models.github.ai/inference/chat/completions")
-MODELS_CATALOG_URL = os.environ.get("MODELS_CATALOG_URL", "https://models.github.ai/catalog/models")
 DEFAULT_MODEL = "openai/gpt-5"
 MAX_ANALYSIS_TOKENS = 2200
 MAX_SLUG_LENGTH = 60
@@ -171,57 +170,16 @@ def strip_code_fences(content: str) -> str:
     return content
 
 
-def parse_model_version(version: str) -> tuple[tuple[int, int | str], ...]:
-    parts = re.findall(r"\d+|[A-Za-z]+", clean_text(version))
-    if not parts:
-        return ((1, ""),)
-    return tuple((0, int(part)) if part.isdigit() else (1, part.lower()) for part in parts)
-
-
-def model_sort_key(model: dict) -> tuple[tuple[tuple[int, int | str], ...], str]:
-    version = clean_text(str(model.get("version", "")))
-    model_id = clean_text(str(model.get("id", "")))
-    return (parse_model_version(version), model_id)
-
-
-def select_latest_model_id(models: list[dict]) -> str:
-    candidates = []
-    for model in models:
-        model_id = clean_text(str(model.get("id", "")))
-        input_modalities = model.get("supported_input_modalities") or []
-        output_modalities = model.get("supported_output_modalities") or []
-        if not model_id.startswith("openai/gpt-"):
-            continue
-        if "text" not in input_modalities or "text" not in output_modalities:
-            continue
-        candidates.append(model)
-
-    if not candidates:
-        return DEFAULT_MODEL
-
-    return max(candidates, key=model_sort_key)["id"]
-
-
-def resolve_model(token: str) -> str:
+def resolve_model() -> str:
     configured_model = clean_text(os.environ.get("MODELS_MODEL", ""))
     if configured_model:
         return configured_model
-
-    try:
-        models = request_json(MODELS_CATALOG_URL, token=token)
-    except RuntimeError as exc:
-        print(
-            f"Falling back to default model {DEFAULT_MODEL} because catalog lookup failed: {exc}",
-            file=sys.stderr,
-        )
-        return DEFAULT_MODEL
-
-    return select_latest_model_id(models)
+    return DEFAULT_MODEL
 
 
 def generate_analysis(topic: HotTopic) -> dict[str, str]:
     token = os.environ["MODELS_TOKEN"]
-    model = resolve_model(token)
+    model = resolve_model()
     payload = {
         "model": model,
         "temperature": 0.7,
