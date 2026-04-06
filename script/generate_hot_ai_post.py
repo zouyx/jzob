@@ -25,6 +25,7 @@ RETWEET_WEIGHT = 2
 QUOTE_WEIGHT = 2
 REPLY_WEIGHT = 3
 MAX_ANALYSIS_TOKENS = 2200
+MAX_SLUG_LENGTH = 60
 
 
 @dataclass
@@ -120,7 +121,7 @@ def slugify(text: str) -> str:
     ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", ascii_text.lower()).strip("-")
     slug = re.sub(r"-{2,}", "-", slug)
-    return slug[:60] or f"ai-topic-{datetime.now().strftime('%Y%m%d')}"
+    return slug[:MAX_SLUG_LENGTH] or f"ai-topic-{datetime.now().strftime('%Y%m%d')}"
 
 
 def strip_code_fences(content: str) -> str:
