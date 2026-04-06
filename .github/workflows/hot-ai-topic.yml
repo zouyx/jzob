@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       query:
-        description: X.com search query used to find hot AI posts
+        description: Google News search query used to find hot AI topics
         required: false
-        default: '(AI OR "artificial intelligence" OR OpenAI OR Anthropic OR Claude OR Gemini OR DeepSeek OR Copilot) lang:en -is:retweet'
+        default: 'AI OR "artificial intelligence" OR OpenAI OR Anthropic OR Claude OR Gemini OR DeepSeek OR Copilot when:1d'
       max_results:
-        description: Number of candidate posts to fetch from X
+        description: Number of candidate topics to inspect from Google News
         required: false
         default: '10'
       model:
@@ -20,6 +20,10 @@ on:
 
 permissions:
   contents: write
+
+concurrency:
+  group: hot-ai-topic
+  cancel-in-progress: false
 
 jobs:
   generate-hot-ai-post:
@@ -39,11 +43,10 @@ jobs:
       - name: Generate blog post from hot AI topic
         id: generate
         env:
-          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
           GITHUB_MODELS_TOKEN: ${{ secrets.GITHUB_MODELS_TOKEN }}
-          HOT_AI_TOPIC_QUERY: ${{ inputs.query || '' }}
-          HOT_AI_TOPIC_MAX_RESULTS: ${{ inputs.max_results || '10' }}
-          GITHUB_MODELS_MODEL: ${{ inputs.model || 'openai/gpt-4.1-mini' }}
+          HOT_AI_TOPIC_QUERY: ${{ github.event.inputs.query || '' }}
+          HOT_AI_TOPIC_MAX_RESULTS: ${{ github.event.inputs.max_results || '10' }}
+          GITHUB_MODELS_MODEL: ${{ github.event.inputs.model || 'openai/gpt-4.1-mini' }}
         run: python3 script/generate_hot_ai_post.py
 
       - name: Commit generated post
