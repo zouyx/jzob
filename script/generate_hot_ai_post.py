@@ -26,7 +26,7 @@ QUOTE_WEIGHT = 2
 REPLY_WEIGHT = 3
 MAX_ANALYSIS_TOKENS = 2200
 MAX_SLUG_LENGTH = 60
-POST_FILENAME_PREFIX = "AI"
+POST_FILENAME_PREFIX = "ai"
 
 
 @dataclass
@@ -67,10 +67,10 @@ def clean_text(text: str) -> str:
 
 def score_post(metrics: dict[str, int]) -> int:
     return (
-        int(metrics.get("like_count", 0)) * LIKE_WEIGHT
-        + int(metrics.get("retweet_count", 0)) * RETWEET_WEIGHT
-        + int(metrics.get("quote_count", 0)) * QUOTE_WEIGHT
-        + int(metrics.get("reply_count", 0)) * REPLY_WEIGHT
+        metrics.get("like_count", 0) * LIKE_WEIGHT
+        + metrics.get("retweet_count", 0) * RETWEET_WEIGHT
+        + metrics.get("quote_count", 0) * QUOTE_WEIGHT
+        + metrics.get("reply_count", 0) * REPLY_WEIGHT
     )
 
 
