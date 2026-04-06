@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-MODULE_PATH = Path("/home/runner/work/jzob/jzob/script/generate_hot_ai_post.py")
+MODULE_PATH = Path(__file__).resolve().parents[1] / "script" / "generate_hot_ai_post.py"
 SPEC = importlib.util.spec_from_file_location("generate_hot_ai_post", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

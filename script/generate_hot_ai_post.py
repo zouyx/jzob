@@ -171,10 +171,17 @@ def strip_code_fences(content: str) -> str:
     return content
 
 
-def model_sort_key(model: dict) -> tuple[str, str]:
+def parse_model_version(version: str) -> tuple[tuple[int, int | str], ...]:
+    parts = re.findall(r"\d+|[A-Za-z]+", clean_text(version))
+    if not parts:
+        return ((1, ""),)
+    return tuple((0, int(part)) if part.isdigit() else (1, part.lower()) for part in parts)
+
+
+def model_sort_key(model: dict) -> tuple[tuple[tuple[int, int | str], ...], str]:
     version = clean_text(str(model.get("version", "")))
     model_id = clean_text(str(model.get("id", "")))
-    return (version, model_id)
+    return (parse_model_version(version), model_id)
 
 
 def select_latest_model_id(models: list[dict]) -> str:
