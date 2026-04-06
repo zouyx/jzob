@@ -1,0 +1,69 @@
+name: Generate Hot AI Topic Post
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: Google News search query used to find hot AI topics
+        required: false
+        default: 'AI OR "artificial intelligence" OR OpenAI OR Anthropic OR Claude OR Gemini OR DeepSeek OR Copilot when:1d'
+      max_results:
+        description: Number of candidate topics to inspect from Google News
+        required: false
+        default: '10'
+      model:
+        description: GitHub Models model ID used by Copilot-style generation
+        required: false
+        default: openai/gpt-4.1-mini
+  schedule:
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hot-ai-topic
+  cancel-in-progress: false
+
+jobs:
+  generate-hot-ai-post:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate blog post from hot AI topic
+        id: generate
+        env:
+          MODELS_TOKEN: ${{ secrets.MODELS_TOKEN }}
+          HOT_AI_TOPIC_QUERY: ${{ github.event.inputs.query || '' }}
+          HOT_AI_TOPIC_MAX_RESULTS: ${{ github.event.inputs.max_results || '10' }}
+          MODELS_MODEL: ${{ github.event.inputs.model || 'openai/gpt-4.1-mini' }}
+        run: python3 script/generate_hot_ai_post.py
+
+      - name: Commit generated post
+        run: |
+          if [ -z "$(git status --porcelain _posts)" ]; then
+            echo "No new post generated."
+            exit 0
+          fi
+
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add _posts
+          git commit -m "docs: add hot AI topic analysis"
+          git push origin HEAD:master
+
+      - name: Print summary
+        if: steps.generate.outputs.post_file != ''
+        run: |
+          echo "Generated post: ${{ steps.generate.outputs.post_file }}"
+          echo "Source: ${{ steps.generate.outputs.source_url }}"
