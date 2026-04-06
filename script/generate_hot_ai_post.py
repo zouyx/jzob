@@ -25,7 +25,7 @@ POSTS_DIR = REPO_ROOT / "_posts"
 DEFAULT_QUERY = 'AI OR "artificial intelligence" OR OpenAI OR Anthropic OR Claude OR Gemini OR DeepSeek OR Copilot when:1d'
 GOOGLE_NEWS_RSS_URL = os.environ.get("GOOGLE_NEWS_RSS_URL", "https://news.google.com/rss/search")
 MODELS_API_URL = os.environ.get("MODELS_API_URL", "https://models.github.ai/inference/chat/completions")
-DEFAULT_MODEL = "openai/gpt-4.1-mini"
+DEFAULT_MODEL = "openai/gpt-5"
 MAX_ANALYSIS_TOKENS = 2200
 MAX_SLUG_LENGTH = 60
 POST_FILENAME_PREFIX = "ai"
@@ -170,9 +170,16 @@ def strip_code_fences(content: str) -> str:
     return content
 
 
+def resolve_model() -> str:
+    configured_model = clean_text(os.environ.get("MODELS_MODEL", ""))
+    if configured_model:
+        return configured_model
+    return DEFAULT_MODEL
+
+
 def generate_analysis(topic: HotTopic) -> dict[str, str]:
     token = os.environ["MODELS_TOKEN"]
-    model = os.environ.get("MODELS_MODEL") or DEFAULT_MODEL
+    model = resolve_model()
     payload = {
         "model": model,
         "temperature": 0.7,
@@ -211,6 +218,7 @@ def generate_analysis(topic: HotTopic) -> dict[str, str]:
     content = response["choices"][0]["message"]["content"]
     analysis = json.loads(strip_code_fences(content))
     analysis["slug"] = slugify(analysis.get("slug") or analysis.get("title", ""))
+    analysis["model"] = model
     return analysis
 
 
@@ -256,6 +264,12 @@ def already_generated(posts_dir: Path, topic: HotTopic) -> bool:
     return False
 
 
+def already_generated_today(posts_dir: Path, now: datetime | None = None) -> bool:
+    current_time = now or datetime.now(UTC)
+    filename_prefix = f"{current_time:%Y-%m-%d}-{POST_FILENAME_PREFIX}-"
+    return any(posts_dir.glob(f"{filename_prefix}*.md"))
+
+
 def build_post_path(posts_dir: Path, slug: str, suffix: int | None = None) -> Path:
     suffix_text = f"-{suffix}" if suffix is not None else ""
     filename = f"{datetime.now(UTC):%Y-%m-%d}-{POST_FILENAME_PREFIX}-{slug}{suffix_text}.md"
@@ -291,6 +305,10 @@ def write_outputs(post_path: Path, analysis: dict[str, str], hot_topic: HotTopic
 
 def main() -> int:
     POSTS_DIR.mkdir(exist_ok=True)
+    if already_generated_today(POSTS_DIR):
+        print(f"Hot AI topic post already generated for {datetime.now(UTC):%Y-%m-%d}")
+        return 0
+
     hot_topic = fetch_hot_ai_topic()
     if already_generated(POSTS_DIR, hot_topic):
         print(f"Hot topic already published for {hot_topic.url}")
@@ -300,7 +318,7 @@ def main() -> int:
     content = render_post(hot_topic, analysis)
     post_path = write_post(POSTS_DIR, analysis, content)
     write_outputs(post_path, analysis, hot_topic)
-    print(f"Generated {post_path.relative_to(REPO_ROOT)} from {hot_topic.url}")
+    print(f"Generated {post_path.relative_to(REPO_ROOT)} from {hot_topic.url} using model {analysis['model']}")
     return 0
 
 
