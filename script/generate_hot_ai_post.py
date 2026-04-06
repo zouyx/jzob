@@ -101,9 +101,10 @@ def select_hot_post(payload: dict) -> HotPost:
 
 def fetch_hot_ai_post() -> HotPost:
     token = os.environ["X_BEARER_TOKEN"]
+    max_results = int(os.environ.get("HOT_AI_TOPIC_MAX_RESULTS") or "10")
     params = {
         "query": os.environ.get("HOT_AI_TOPIC_QUERY") or DEFAULT_QUERY,
-        "max_results": os.environ.get("HOT_AI_TOPIC_MAX_RESULTS") or "10",
+        "max_results": max_results,
         "sort_order": "relevancy",
         "tweet.fields": "created_at,lang,public_metrics",
         "expansions": "author_id",
@@ -255,10 +256,10 @@ def main() -> int:
 
 if __name__ == "__main__":
     try:
-        raise SystemExit(main())
+        sys.exit(main())
     except KeyError as exc:
         print(f"Missing required environment variable: {exc.args[0]}", file=sys.stderr)
-        raise SystemExit(1)
+        sys.exit(1)
     except Exception as exc:
         print(str(exc), file=sys.stderr)
-        raise SystemExit(1)
+        sys.exit(1)
