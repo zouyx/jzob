@@ -74,7 +74,7 @@ class GenerateHotAIPostTests(unittest.TestCase):
                 "choices": [
                     {
                         "message": {
-                            "content": '{"title":"标题","slug":"AI 测试","excerpt":"摘要","body":"正文"}'
+                            "content": '{"title":"标题","slug":"AI Test","excerpt":"摘要","body":"正文"}'
                         }
                     }
                 ]
@@ -93,7 +93,7 @@ class GenerateHotAIPostTests(unittest.TestCase):
                 MODULE.MAX_ANALYSIS_TOKENS,
             )
             self.assertNotIn("max_tokens", captured["payload"])
-            self.assertEqual(analysis["slug"], "ai")
+            self.assertEqual(analysis["slug"], "ai-test")
         finally:
             MODULE.request_json = original_request_json
             if original_token is None:
