@@ -157,7 +157,7 @@ def generate_analysis(post: HotPost) -> dict[str, str]:
                     "请基于下面这条在 x.com 上互动度最高的 AI 相关帖子，生成一篇适合技术博客发布的深度分析文章。\n"
                     "要求：\n"
                     "1. 返回 JSON 对象，字段必须是 title、slug、excerpt、body。\n"
-                    "2. title 不超过 50 个字；slug 使用小写英文和连字符；excerpt 1-2 句话。\n"
+                    "2. title 不超过 50 个字；slug 提供一个简短主题短语即可，程序会统一转成 URL slug；excerpt 1-2 句话。\n"
                     "3. body 仅返回 Markdown 正文，不要包含 YAML front matter。\n"
                     "4. 正文至少包含这些二级标题：事件概览、为什么值得关注、技术与产业影响、工程团队可以怎么做、风险与争议、总结。\n"
                     "5. 明确区分“已知事实”和“推断/判断”，不要编造未提供的数据。\n"
