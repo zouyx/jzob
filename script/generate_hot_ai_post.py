@@ -20,6 +20,11 @@ DEFAULT_QUERY = '(AI OR "artificial intelligence" OR OpenAI OR Anthropic OR Clau
 X_API_BASE_URL = os.environ.get("X_API_BASE_URL", "https://api.x.com/2").rstrip("/")
 MODELS_API_URL = os.environ.get("GITHUB_MODELS_API_URL", "https://models.github.ai/inference/chat/completions")
 DEFAULT_MODEL = "openai/gpt-4.1-mini"
+LIKE_WEIGHT = 1
+RETWEET_WEIGHT = 2
+QUOTE_WEIGHT = 2
+REPLY_WEIGHT = 3
+MAX_ANALYSIS_TOKENS = 2200
 
 
 @dataclass
@@ -60,10 +65,10 @@ def clean_text(text: str) -> str:
 
 def score_post(metrics: dict[str, int]) -> int:
     return (
-        int(metrics.get("like_count", 0))
-        + int(metrics.get("retweet_count", 0)) * 2
-        + int(metrics.get("quote_count", 0)) * 2
-        + int(metrics.get("reply_count", 0)) * 3
+        int(metrics.get("like_count", 0)) * LIKE_WEIGHT
+        + int(metrics.get("retweet_count", 0)) * RETWEET_WEIGHT
+        + int(metrics.get("quote_count", 0)) * QUOTE_WEIGHT
+        + int(metrics.get("reply_count", 0)) * REPLY_WEIGHT
     )
 
 
@@ -132,7 +137,7 @@ def generate_analysis(post: HotPost) -> dict[str, str]:
     payload = {
         "model": model,
         "temperature": 0.7,
-        "max_tokens": 2200,
+        "max_tokens": MAX_ANALYSIS_TOKENS,
         "response_format": {"type": "json_object"},
         "messages": [
             {
@@ -205,8 +210,10 @@ excerpt: {yaml_string(excerpt)}
 def already_generated(posts_dir: Path, post: HotPost) -> bool:
     marker = post.url
     for path in posts_dir.glob("*.md"):
-        if marker in path.read_text(encoding="utf-8", errors="ignore"):
-            return True
+        with path.open(encoding="utf-8", errors="ignore") as handle:
+            for line in handle:
+                if marker in line:
+                    return True
     return False
 
 
