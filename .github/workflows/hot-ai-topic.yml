@@ -43,10 +43,10 @@ jobs:
       - name: Generate blog post from hot AI topic
         id: generate
         env:
-          GITHUB_MODELS_TOKEN: ${{ secrets.GITHUB_MODELS_TOKEN }}
+          MODELS_TOKEN: ${{ secrets.MODELS_TOKEN }}
           HOT_AI_TOPIC_QUERY: ${{ github.event.inputs.query || '' }}
           HOT_AI_TOPIC_MAX_RESULTS: ${{ github.event.inputs.max_results || '10' }}
-          GITHUB_MODELS_MODEL: ${{ github.event.inputs.model || 'openai/gpt-4.1-mini' }}
+          MODELS_MODEL: ${{ github.event.inputs.model || 'openai/gpt-4.1-mini' }}
         run: python3 script/generate_hot_ai_post.py
 
       - name: Commit generated post

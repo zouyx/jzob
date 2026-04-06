@@ -13,4 +13,4 @@
 
 需要在仓库 Secrets 中配置：
 
-- `GITHUB_MODELS_TOKEN`：带 `models:read` 权限的 GitHub token
+- `MODELS_TOKEN`：带 `models:read` 权限的 GitHub token

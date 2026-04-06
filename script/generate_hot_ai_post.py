@@ -24,7 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 POSTS_DIR = REPO_ROOT / "_posts"
 DEFAULT_QUERY = 'AI OR "artificial intelligence" OR OpenAI OR Anthropic OR Claude OR Gemini OR DeepSeek OR Copilot when:1d'
 GOOGLE_NEWS_RSS_URL = os.environ.get("GOOGLE_NEWS_RSS_URL", "https://news.google.com/rss/search")
-MODELS_API_URL = os.environ.get("GITHUB_MODELS_API_URL", "https://models.github.ai/inference/chat/completions")
+MODELS_API_URL = os.environ.get("MODELS_API_URL", "https://models.github.ai/inference/chat/completions")
 DEFAULT_MODEL = "openai/gpt-4.1-mini"
 MAX_ANALYSIS_TOKENS = 2200
 MAX_SLUG_LENGTH = 60
@@ -171,8 +171,8 @@ def strip_code_fences(content: str) -> str:
 
 
 def generate_analysis(topic: HotTopic) -> dict[str, str]:
-    token = os.environ["GITHUB_MODELS_TOKEN"]
-    model = os.environ.get("GITHUB_MODELS_MODEL") or DEFAULT_MODEL
+    token = os.environ["MODELS_TOKEN"]
+    model = os.environ.get("MODELS_MODEL") or DEFAULT_MODEL
     payload = {
         "model": model,
         "temperature": 0.7,
