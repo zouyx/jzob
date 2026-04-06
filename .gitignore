@@ -2,3 +2,4 @@
 /.idea/
 /.sass-cache/
 /_deploy/
+__pycache__/
