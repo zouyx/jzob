@@ -14,12 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout source
@@ -42,13 +36,27 @@ jobs:
       - name: Build site
         run: JEKYLL_ENV=production jekyll build --destination ./_site
 
-      - name: Upload Pages artifact
+      - name: Deploy to zouyx.github.io
         if: github.ref == 'refs/heads/master'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./_site
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          # Set up SSH with cleanup on exit
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          trap 'rm -f ~/.ssh/id_rsa' EXIT
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-      - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/master'
-        id: deployment
-        uses: actions/deploy-pages@v4
+          # Configure git
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+          # Clone the target repo and replace content
+          git clone git@github.com:zouyx/zouyx.github.io.git /tmp/deploy
+          rsync -av --delete --exclude '.git' ./_site/ /tmp/deploy/
+
+          cd /tmp/deploy
+          git add -A
+          git diff --cached --quiet || git commit -m "Deploy from zouyx/jzob@${{ github.sha }}"
+          git push origin master
