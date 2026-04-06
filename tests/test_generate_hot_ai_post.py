@@ -53,6 +53,54 @@ class GenerateHotAIPostTests(unittest.TestCase):
                 )
             )
 
+    def test_generate_analysis_uses_max_completion_tokens_payload(self):
+        topic = MODULE.HotTopic(
+            topic_id="topic-1",
+            title="Test Topic",
+            summary="Summary",
+            source_name="Google News",
+            published_at="2026-04-06 00:00:00 UTC",
+            url="https://example.com/topic",
+        )
+        captured = {}
+        original_token = MODULE.os.environ.get("MODELS_TOKEN")
+        original_request_json = MODULE.request_json
+
+        def fake_request_json(url, *, token, payload=None):
+            captured["url"] = url
+            captured["token"] = token
+            captured["payload"] = payload
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"title":"标题","slug":"AI 测试","excerpt":"摘要","body":"正文"}'
+                        }
+                    }
+                ]
+            }
+
+        try:
+            MODULE.os.environ["MODELS_TOKEN"] = "test-token"
+            MODULE.request_json = fake_request_json
+
+            analysis = MODULE.generate_analysis(topic)
+
+            self.assertEqual(captured["url"], MODULE.MODELS_API_URL)
+            self.assertEqual(captured["token"], "test-token")
+            self.assertEqual(
+                captured["payload"]["max_completion_tokens"],
+                MODULE.MAX_ANALYSIS_TOKENS,
+            )
+            self.assertNotIn("max_tokens", captured["payload"])
+            self.assertEqual(analysis["slug"], "ai")
+        finally:
+            MODULE.request_json = original_request_json
+            if original_token is None:
+                MODULE.os.environ.pop("MODELS_TOKEN", None)
+            else:
+                MODULE.os.environ["MODELS_TOKEN"] = original_token
+
 
 if __name__ == "__main__":
     unittest.main()
