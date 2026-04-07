@@ -1,7 +1,5 @@
 # jzob
 
-[![Build Status](https://travis-ci.org/zouyx/jzob.svg?branch=master)](https://travis-ci.org/zouyx/jzob)
-
 ## 自动生成热点 AI 文章
 
 仓库新增了 GitHub Actions 工作流 `.github/workflows/hot-ai-topic.yml`，默认每天执行一次（UTC 02:00），也可手动触发以下流程：
