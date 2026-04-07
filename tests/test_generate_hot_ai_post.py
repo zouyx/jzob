@@ -5,6 +5,7 @@ import unittest
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
+from unittest import mock
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "script" / "generate_hot_ai_post.py"
@@ -52,6 +53,34 @@ class GenerateHotAIPostTests(unittest.TestCase):
                     datetime(2026, 4, 7, 2, 0, tzinfo=UTC),
                 )
             )
+
+    def test_generate_analysis_uses_max_completion_tokens(self):
+        topic = MODULE.HotTopic(
+            topic_id="topic-1",
+            title="AI topic",
+            summary="Summary",
+            source_name="Google News",
+            published_at="2026-04-06 00:00:00 UTC",
+            url="https://example.com/topic",
+        )
+        response = {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"title":"标题","slug":"custom slug","excerpt":"摘要","body":"正文"}'
+                    }
+                }
+            ]
+        }
+
+        with mock.patch.dict(MODULE.os.environ, {"MODELS_TOKEN": "test-token"}, clear=False):
+            with mock.patch.object(MODULE, "request_json", return_value=response) as request_json:
+                analysis = MODULE.generate_analysis(topic)
+
+        payload = request_json.call_args.kwargs["payload"]
+        self.assertEqual(payload["max_completion_tokens"], MODULE.MAX_ANALYSIS_TOKENS)
+        self.assertNotIn("max_tokens", payload)
+        self.assertEqual(analysis["model"], MODULE.DEFAULT_MODEL)
 
 
 if __name__ == "__main__":
