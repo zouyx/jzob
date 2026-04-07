@@ -25,11 +25,11 @@ POSTS_DIR = REPO_ROOT / "_posts"
 DEFAULT_QUERY = 'AI OR "artificial intelligence" OR OpenAI OR Anthropic OR Claude OR Gemini OR DeepSeek OR Copilot when:1d'
 GOOGLE_NEWS_RSS_URL = os.environ.get("GOOGLE_NEWS_RSS_URL", "https://news.google.com/rss/search")
 MODELS_API_URL = os.environ.get("MODELS_API_URL", "https://models.github.ai/inference/chat/completions")
-DEFAULT_MODEL = "azure-openai/gpt-5-mini"
+DEFAULT_MODEL = "openai/gpt-5-mini"
 MAX_ANALYSIS_TOKENS = 2200
 MAX_SLUG_LENGTH = 60
 POST_FILENAME_PREFIX = "ai"
-REQUEST_TIMEOUT_SECONDS = 30
+REQUEST_TIMEOUT_SECONDS = 120
 
 
 @dataclass
