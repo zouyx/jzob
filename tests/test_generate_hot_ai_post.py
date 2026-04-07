@@ -17,11 +17,11 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GenerateHotAIPostTests(unittest.TestCase):
-    def test_resolve_model_uses_default_gpt5_when_not_overridden(self):
+    def test_resolve_model_uses_default_gpt41mini_when_not_overridden(self):
         original_value = MODULE.os.environ.get("MODELS_MODEL")
         try:
             MODULE.os.environ.pop("MODELS_MODEL", None)
-            self.assertEqual(MODULE.resolve_model(), "openai/gpt-5")
+            self.assertEqual(MODULE.resolve_model(), "openai/gpt-4.1-mini")
         finally:
             if original_value is None:
                 MODULE.os.environ.pop("MODELS_MODEL", None)
