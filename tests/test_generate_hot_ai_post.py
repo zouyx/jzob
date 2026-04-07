@@ -1,4 +1,5 @@
 import importlib.util
+import re
 import sys
 import tempfile
 import unittest
@@ -42,9 +43,21 @@ class GenerateHotAIPostTests(unittest.TestCase):
 
     def test_workflow_default_model_matches_script_default(self):
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+        workflow_default = re.search(
+            r"^\s+model:\s*$.*?^\s+default:\s+(\S+)\s*$",
+            workflow,
+            re.MULTILINE | re.DOTALL,
+        )
+        models_env_default = re.search(
+            r"^\s+MODELS_MODEL:\s+\$\{\{\s*github\.event\.inputs\.model\s+\|\|\s+'([^']+)'\s*\}\}\s*$",
+            workflow,
+            re.MULTILINE,
+        )
 
-        self.assertIn(f"default: {MODULE.DEFAULT_MODEL}", workflow)
-        self.assertIn(f"MODELS_MODEL: ${{{{ github.event.inputs.model || '{MODULE.DEFAULT_MODEL}' }}}}", workflow)
+        self.assertIsNotNone(workflow_default)
+        self.assertIsNotNone(models_env_default)
+        self.assertEqual(workflow_default.group(1), MODULE.DEFAULT_MODEL)
+        self.assertEqual(models_env_default.group(1), MODULE.DEFAULT_MODEL)
 
     def test_already_generated_today_only_matches_today_ai_posts(self):
         now = datetime(2026, 4, 6, 2, 0, tzinfo=UTC)
