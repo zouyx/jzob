@@ -27,7 +27,7 @@ class GenerateHotAIPostTests(unittest.TestCase):
         original_value = MODULE.os.environ.get("MODELS_MODEL")
         try:
             MODULE.os.environ.pop("MODELS_MODEL", None)
-            self.assertEqual(MODULE.resolve_model(), "azure-openai/gpt-5-mini")
+            self.assertEqual(MODULE.resolve_model(), "openai/gpt-5-mini")
         finally:
             if original_value is None:
                 MODULE.os.environ.pop("MODELS_MODEL", None)
