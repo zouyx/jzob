@@ -11,6 +11,10 @@ from unittest import mock
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "script" / "generate_hot_ai_post.py"
 WORKFLOW_PATH = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "hot-ai-topic.yml"
+MODELS_ENV_FALLBACK_PATTERN = re.compile(
+    r"^\s+MODELS_MODEL:\s+\$\{\{\s*github\.event\.inputs\.model\s+\|\|\s+(['\"])([^'\"]+)\1\s*\}\}\s*$",
+    re.MULTILINE,
+)
 SPEC = importlib.util.spec_from_file_location("generate_hot_ai_post", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -56,16 +60,12 @@ class GenerateHotAIPostTests(unittest.TestCase):
                 if default_match:
                     workflow_default = default_match.group(1)
                     break
-        models_env_default = re.search(
-            r"^\s+MODELS_MODEL:\s+\$\{\{\s*github\.event\.inputs\.model\s+\|\|\s+['\"]([^'\"]+)['\"]\s*\}\}\s*$",
-            workflow,
-            re.MULTILINE,
-        )
+        models_env_default = MODELS_ENV_FALLBACK_PATTERN.search(workflow)
 
         self.assertIsNotNone(workflow_default)
         self.assertIsNotNone(models_env_default)
         self.assertEqual(workflow_default, MODULE.DEFAULT_MODEL)
-        self.assertEqual(models_env_default.group(1), MODULE.DEFAULT_MODEL)
+        self.assertEqual(models_env_default.group(2), MODULE.DEFAULT_MODEL)
 
     def test_already_generated_today_only_matches_today_ai_posts(self):
         now = datetime(2026, 4, 6, 2, 0, tzinfo=UTC)
