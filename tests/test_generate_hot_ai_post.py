@@ -78,6 +78,7 @@ class GenerateHotAIPostTests(unittest.TestCase):
                 analysis = MODULE.generate_analysis(topic)
 
         payload = request_json.call_args.kwargs["payload"]
+        self.assertEqual(payload["temperature"], 1)
         self.assertEqual(payload["max_completion_tokens"], MODULE.MAX_ANALYSIS_TOKENS)
         self.assertNotIn("max_tokens", payload)
         self.assertEqual(analysis["model"], MODULE.DEFAULT_MODEL)
