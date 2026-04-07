@@ -43,11 +43,19 @@ class GenerateHotAIPostTests(unittest.TestCase):
 
     def test_workflow_default_model_matches_script_default(self):
         workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
-        workflow_default = re.search(
-            r"^\s+model:\s*$.*?^\s+default:\s+(\S+)\s*$",
-            workflow,
-            re.MULTILINE | re.DOTALL,
-        )
+        workflow_default = None
+        inside_model_input = False
+        for line in workflow.splitlines():
+            if re.match(r"^\s+model:\s*$", line):
+                inside_model_input = True
+                continue
+            if inside_model_input and re.match(r"^\s+\w+:\s*$", line):
+                inside_model_input = False
+            if inside_model_input:
+                default_match = re.match(r"^\s+default:\s+(\S+)\s*$", line)
+                if default_match:
+                    workflow_default = default_match.group(1)
+                    break
         models_env_default = re.search(
             r"^\s+MODELS_MODEL:\s+\$\{\{\s*github\.event\.inputs\.model\s+\|\|\s+'([^']+)'\s*\}\}\s*$",
             workflow,
@@ -56,7 +64,7 @@ class GenerateHotAIPostTests(unittest.TestCase):
 
         self.assertIsNotNone(workflow_default)
         self.assertIsNotNone(models_env_default)
-        self.assertEqual(workflow_default.group(1), MODULE.DEFAULT_MODEL)
+        self.assertEqual(workflow_default, MODULE.DEFAULT_MODEL)
         self.assertEqual(models_env_default.group(1), MODULE.DEFAULT_MODEL)
 
     def test_already_generated_today_only_matches_today_ai_posts(self):
