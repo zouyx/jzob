@@ -107,6 +107,7 @@ permalink:     date
 paginate_path: /page:num
 # Time Zone Set the time zone for site generation.
 timezone: Asia/Shanghai
+future: true
 
 #enable paginate
 pagination: 
