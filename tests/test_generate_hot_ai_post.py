@@ -57,7 +57,7 @@ class GenerateHotAIPostTests(unittest.TestCase):
                     workflow_default = default_match.group(1)
                     break
         models_env_default = re.search(
-            r"^\s+MODELS_MODEL:\s+\$\{\{\s*github\.event\.inputs\.model\s+\|\|\s+'([^']+)'\s*\}\}\s*$",
+            r"^\s+MODELS_MODEL:\s+\$\{\{\s*github\.event\.inputs\.model\s+\|\|\s+['\"]([^'\"]+)['\"]\s*\}\}\s*$",
             workflow,
             re.MULTILINE,
         )
