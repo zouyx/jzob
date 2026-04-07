@@ -182,7 +182,7 @@ def generate_analysis(topic: HotTopic) -> dict[str, str]:
     model = resolve_model()
     payload = {
         "model": model,
-        "temperature": 0.7,
+        "temperature": 1,
         "max_completion_tokens": MAX_ANALYSIS_TOKENS,
         "response_format": {"type": "json_object"},
         "messages": [
