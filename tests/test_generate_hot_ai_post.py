@@ -9,6 +9,7 @@ from unittest import mock
 
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "script" / "generate_hot_ai_post.py"
+WORKFLOW_PATH = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "hot-ai-topic.yml"
 SPEC = importlib.util.spec_from_file_location("generate_hot_ai_post", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -17,11 +18,11 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GenerateHotAIPostTests(unittest.TestCase):
-    def test_resolve_model_uses_default_gpt5_when_not_overridden(self):
+    def test_resolve_model_uses_default_gpt41_mini_when_not_overridden(self):
         original_value = MODULE.os.environ.get("MODELS_MODEL")
         try:
             MODULE.os.environ.pop("MODELS_MODEL", None)
-            self.assertEqual(MODULE.resolve_model(), "openai/gpt-5")
+            self.assertEqual(MODULE.resolve_model(), "openai/gpt-4.1-mini")
         finally:
             if original_value is None:
                 MODULE.os.environ.pop("MODELS_MODEL", None)
@@ -38,6 +39,12 @@ class GenerateHotAIPostTests(unittest.TestCase):
                 MODULE.os.environ.pop("MODELS_MODEL", None)
             else:
                 MODULE.os.environ["MODELS_MODEL"] = original_value
+
+    def test_workflow_default_model_matches_script_default(self):
+        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+
+        self.assertIn(f"default: {MODULE.DEFAULT_MODEL}", workflow)
+        self.assertIn(f"MODELS_MODEL: ${{{{ github.event.inputs.model || '{MODULE.DEFAULT_MODEL}' }}}}", workflow)
 
     def test_already_generated_today_only_matches_today_ai_posts(self):
         now = datetime(2026, 4, 6, 2, 0, tzinfo=UTC)
