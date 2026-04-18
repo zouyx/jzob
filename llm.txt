@@ -1,0 +1,36 @@
+# llm.txt — Joe Zou's Blog (jzob)
+# https://zouyx.github.io
+# Generated for LLM discovery following the llms.txt convention
+
+> Joe Zou's personal tech blog. Posts cover Golang, Java, software architecture, book recommendations, and AI topics. Written primarily in Chinese with some English content.
+
+## About
+
+- Author: Joe Zou (邹雨鑫)
+- Email: joezou@apache.org
+- GitHub: https://github.com/zouyx
+- LinkedIn: https://www.linkedin.com/in/joe-zou-829b2981
+
+Joe is a senior software engineer skilled in Java, Golang, and Node.js. He writes about programming, performance tuning, distributed systems, and personal growth.
+
+## Site
+
+- Home: https://zouyx.github.io
+- About: https://zouyx.github.io/about/
+- Sitemap: https://zouyx.github.io/sitemap_new.xml
+- RSS Feed: https://zouyx.github.io/feed.xml
+
+## Content Categories
+
+- **Golang** — Go language tutorials, performance profiling, and practical examples
+- **Java** — Concurrency, flame graphs, and JVM tuning
+- **Architecture** — Distributed systems, search systems, service design
+- **AI** — Hot AI topics and analysis, generated daily via GitHub Actions
+- **Book Recommendations** — Reviews of technical and personal development books
+- **Redis** — Redis client troubleshooting and usage
+
+## Technology Stack
+
+- Static site generator: Jekyll 4
+- Hosted on: GitHub Pages
+- Auto-generated AI posts: GitHub Actions + GitHub Models (openai/gpt-5)
