@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: hot-ai-topic
@@ -61,6 +62,21 @@ jobs:
           git add _posts
           git commit -m "docs: add hot AI topic analysis"
           git push origin HEAD:master
+
+      - name: Trigger deploy workflow
+        if: steps.generate.outputs.post_file != ''
+        run: |
+          HTTP_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/deploy.yml/dispatches \
+            -d '{"ref":"master"}')
+          if [ "$HTTP_STATUS" -ne 204 ]; then
+            echo "Failed to trigger deploy workflow (HTTP $HTTP_STATUS)"
+            exit 1
+          fi
+          echo "Deploy workflow triggered successfully (HTTP $HTTP_STATUS)"
 
       - name: Print summary
         if: steps.generate.outputs.post_file != ''
