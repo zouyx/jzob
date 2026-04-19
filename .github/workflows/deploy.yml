@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - pages-*
+  workflow_dispatch:
 
 env:
   NOKOGIRI_USE_SYSTEM_LIBRARIES: "true"
