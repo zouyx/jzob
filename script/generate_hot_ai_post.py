@@ -359,8 +359,13 @@ def truncate_for_error(text: str, max_length: int = ERROR_SNIPPET_MAX_LENGTH) ->
 
 
 def extract_json_object(text: str) -> object | None:
-    candidate_indexes = sorted(index for index in (text.find("{"), text.find("[")) if index >= 0)
-    for index in candidate_indexes:
+    candidate_indexes: set[int] = set()
+    for opening_char in ("{", "["):
+        index = text.find(opening_char)
+        while index >= 0:
+            candidate_indexes.add(index)
+            index = text.find(opening_char, index + 1)
+    for index in sorted(candidate_indexes):
         try:
             value, _ = JSON_DECODER.raw_decode(text[index:])
         except json.JSONDecodeError:
