@@ -30,6 +30,7 @@ DEFAULT_RESEARCH_MODEL = "openai/gpt-5"
 DEFAULT_WRITING_MODEL = "openai/gpt-4.1"
 DEFAULT_REVIEW_MODEL = "openai/gpt-4.1"
 DEFAULT_MODEL = DEFAULT_RESEARCH_MODEL
+GPT5_MODEL_PREFIX = "openai/gpt-5"
 MAX_RESEARCH_TOKENS = 2600
 MAX_WRITING_TOKENS = 2600
 MAX_REVIEW_TOKENS = 1800
@@ -344,13 +345,13 @@ def resolve_review_model() -> str:
 
 def supports_custom_temperature(model: str) -> bool:
     normalized_model = clean_text(model).lower()
-    return not normalized_model.startswith("openai/gpt-5")
+    return not normalized_model.startswith(GPT5_MODEL_PREFIX)
 
 
 def add_temperature(payload: dict[str, object], model: str, temperature: float) -> dict[str, object]:
     if supports_custom_temperature(model):
-        payload["temperature"] = temperature
-    return payload
+        return {**payload, "temperature": temperature}
+    return dict(payload)
 
 
 def render_related_coverage(topic: HotTopic) -> str:
