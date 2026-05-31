@@ -37,10 +37,12 @@ MAX_REVIEW_TOKENS = 1800
 MAX_SLUG_LENGTH = 60
 POST_FILENAME_PREFIX = "ai"
 REQUEST_TIMEOUT_SECONDS = 120
+ERROR_SNIPPET_MAX_LENGTH = 500
 MIN_FACT_COUNT = 3
 MIN_UNCERTAINTY_COUNT = 1
 MIN_RELATED_COVERAGE_COUNT = 2
 MIN_BODY_LENGTH = 1400
+JSON_DECODER = json.JSONDecoder()
 GENERIC_PHRASES = (
     "值得关注",
     "影响深远",
@@ -351,12 +353,11 @@ def extract_text_content(value: object) -> str:
 
 
 def extract_json_object(text: str) -> object | None:
-    decoder = json.JSONDecoder()
     for index, char in enumerate(text):
         if char not in "[{":
             continue
         try:
-            value, _ = decoder.raw_decode(text[index:])
+            value, _ = JSON_DECODER.raw_decode(text[index:])
         except json.JSONDecodeError:
             continue
         return value
@@ -441,7 +442,7 @@ def parse_model_json_response(response: dict, stage_name: str) -> dict[str, obje
     except json.JSONDecodeError:
         parsed = extract_json_object(content)
     if not isinstance(parsed, dict):
-        snippet = content[:500]
+        snippet = content[:ERROR_SNIPPET_MAX_LENGTH]
         raise RuntimeError(f"{stage_name} model returned invalid JSON object: {snippet}")
     return parsed
 
