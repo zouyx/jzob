@@ -60,9 +60,9 @@ jobs:
           HOT_AI_TOPIC_QUERY: ${{ github.event.inputs.query || '' }}
           HOT_AI_TOPIC_MAX_RESULTS: ${{ github.event.inputs.max_results || '10' }}
           MODELS_MODEL: ${{ github.event.inputs.model || '' }}
-          MODELS_RESEARCH_MODEL: ${{ github.event.inputs.research_model || 'openai/gpt-5' }}
-          MODELS_WRITING_MODEL: ${{ github.event.inputs.writing_model || 'openai/gpt-4.1' }}
-          MODELS_REVIEW_MODEL: ${{ github.event.inputs.review_model || 'openai/gpt-4.1' }}
+          MODELS_RESEARCH_MODEL: ${{ github.event.inputs.model || github.event.inputs.research_model || 'openai/gpt-5' }}
+          MODELS_WRITING_MODEL: ${{ github.event.inputs.model || github.event.inputs.writing_model || 'openai/gpt-4.1' }}
+          MODELS_REVIEW_MODEL: ${{ github.event.inputs.model || github.event.inputs.review_model || 'openai/gpt-4.1' }}
         run: python3 script/generate_hot_ai_post.py
 
       - name: Commit generated post

@@ -32,7 +32,7 @@ def workflow_input_default(name: str) -> str:
 
 def workflow_env_fallback(name: str) -> str:
     pattern = re.compile(
-        rf"^\s+{re.escape(name)}:\s+\$\{{\{{\s*github\.event\.inputs\.[^|]+\|\|\s+(['\"])([^'\"]+)\1\s*\}}\}}\s*$",
+        rf"^\s+{re.escape(name)}:\s+\$\{{\{{.*?\|\|\s+(['\"])([^'\"]+)\1\s*\}}\}}\s*$",
         re.MULTILINE,
     )
     match = pattern.search(WORKFLOW_PATH.read_text(encoding="utf-8"))
