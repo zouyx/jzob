@@ -358,13 +358,19 @@ def truncate_for_error(text: str, max_length: int = ERROR_SNIPPET_MAX_LENGTH) ->
     return text[:max_length] + "..."
 
 
+def summarize_choice(first_choice: dict[str, object]) -> str:
+    keys = sorted(str(key) for key in first_choice.keys())
+    message = first_choice.get("message")
+    message_keys = sorted(str(key) for key in message.keys()) if isinstance(message, dict) else []
+    return f"choice_keys={keys}, message_keys={message_keys}"
+
+
 def extract_json_object(text: str) -> object | None:
     candidate_indexes: set[int] = set()
-    for opening_char in ("{", "["):
-        index = text.find(opening_char)
-        while index >= 0:
-            candidate_indexes.add(index)
-            index = text.find(opening_char, index + 1)
+    index = text.find("{")
+    while index >= 0:
+        candidate_indexes.add(index)
+        index = text.find("{", index + 1)
     for index in sorted(candidate_indexes):
         try:
             value, _ = JSON_DECODER.raw_decode(text[index:])
@@ -440,8 +446,7 @@ def model_response_content(response: dict) -> str:
     choice_text = extract_text_content(first_choice.get("text"))
     if choice_text.strip():
         return choice_text
-    response_snippet = truncate_for_error(json.dumps(first_choice, ensure_ascii=False))
-    raise RuntimeError(f"Models API response did not include text content: {response_snippet}")
+    raise RuntimeError(f"Models API response did not include text content: {summarize_choice(first_choice)}")
 
 
 def parse_model_json_response(response: dict, stage_name: str) -> dict[str, object]:
