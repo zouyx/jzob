@@ -11,10 +11,7 @@ from unittest import mock
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "script" / "generate_hot_ai_post.py"
 WORKFLOW_PATH = Path(__file__).resolve().parents[1] / ".github" / "workflows" / "hot-ai-topic.yml"
-MODELS_ENV_FALLBACK_PATTERN = re.compile(
-    r"^\s+MODELS_MODEL:\s+\$\{\{\s*github\.event\.inputs\.model\s+\|\|\s+(['\"])([^'\"]+)\1\s*\}\}\s*$",
-    re.MULTILINE,
-)
+BACKGROUNDS_PATH = Path(__file__).resolve().parents[1] / "script" / "ai_topic_backgrounds.json"
 SPEC = importlib.util.spec_from_file_location("generate_hot_ai_post", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -22,50 +19,95 @@ sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 
+def workflow_input_default(name: str) -> str:
+    pattern = re.compile(
+        rf"^\s+{re.escape(name)}:\s*$.*?^\s+default:\s+([^\n]+)\s*$",
+        re.MULTILINE | re.DOTALL,
+    )
+    match = pattern.search(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    if match is None:
+        raise AssertionError(f"Workflow input {name} missing")
+    return match.group(1).strip().strip("'\"")
+
+
+def workflow_env_fallback(name: str) -> str:
+    pattern = re.compile(
+        rf"^\s+{re.escape(name)}:\s+\$\{{\{{.*?\|\|\s+(['\"])([^'\"]+)\1\s*\}}\}}\s*$",
+        re.MULTILINE,
+    )
+    match = pattern.search(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    if match is None:
+        raise AssertionError(f"Workflow env {name} missing")
+    return match.group(2)
+
+
 class GenerateHotAIPostTests(unittest.TestCase):
-    def test_resolve_model_uses_default_gpt4_mini_when_not_overridden(self):
-        original_value = MODULE.os.environ.get("MODELS_MODEL")
-        try:
-            MODULE.os.environ.pop("MODELS_MODEL", None)
-            self.assertEqual(MODULE.resolve_model(), "openai/gpt-4.1-mini")
-        finally:
-            if original_value is None:
-                MODULE.os.environ.pop("MODELS_MODEL", None)
-            else:
-                MODULE.os.environ["MODELS_MODEL"] = original_value
+    def test_stage_models_use_new_defaults(self):
+        with mock.patch.dict(MODULE.os.environ, {}, clear=True):
+            self.assertEqual(MODULE.resolve_research_model(), MODULE.DEFAULT_RESEARCH_MODEL)
+            self.assertEqual(MODULE.resolve_writing_model(), MODULE.DEFAULT_WRITING_MODEL)
+            self.assertEqual(MODULE.resolve_review_model(), MODULE.DEFAULT_REVIEW_MODEL)
 
-    def test_resolve_model_prefers_explicit_override(self):
-        original_value = MODULE.os.environ.get("MODELS_MODEL")
-        try:
-            MODULE.os.environ["MODELS_MODEL"] = "openai/gpt-4.1-mini"
-            self.assertEqual(MODULE.resolve_model(), "openai/gpt-4.1-mini")
-        finally:
-            if original_value is None:
-                MODULE.os.environ.pop("MODELS_MODEL", None)
-            else:
-                MODULE.os.environ["MODELS_MODEL"] = original_value
+    def test_stage_models_fall_back_to_legacy_override(self):
+        with mock.patch.dict(MODULE.os.environ, {"MODELS_MODEL": "openai/gpt-4.1-mini"}, clear=True):
+            self.assertEqual(MODULE.resolve_research_model(), "openai/gpt-4.1-mini")
+            self.assertEqual(MODULE.resolve_writing_model(), "openai/gpt-4.1-mini")
+            self.assertEqual(MODULE.resolve_review_model(), "openai/gpt-4.1-mini")
 
-    def test_workflow_default_model_matches_script_default(self):
-        workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
-        workflow_default = None
-        inside_model_input = False
-        for line in workflow.splitlines():
-            if re.match(r"^\s+model:\s*$", line):
-                inside_model_input = True
-                continue
-            if inside_model_input and re.match(r"^\s+\w+:\s*$", line):
-                inside_model_input = False
-            if inside_model_input:
-                default_match = re.match(r"^\s+default:\s+(\S+)\s*$", line)
-                if default_match:
-                    workflow_default = default_match.group(1)
-                    break
-        models_env_default = MODELS_ENV_FALLBACK_PATTERN.search(workflow)
+    def test_workflow_default_models_match_script_defaults(self):
+        self.assertEqual(workflow_input_default("research_model"), MODULE.DEFAULT_RESEARCH_MODEL)
+        self.assertEqual(workflow_input_default("writing_model"), MODULE.DEFAULT_WRITING_MODEL)
+        self.assertEqual(workflow_input_default("review_model"), MODULE.DEFAULT_REVIEW_MODEL)
+        self.assertEqual(workflow_env_fallback("MODELS_RESEARCH_MODEL"), MODULE.DEFAULT_RESEARCH_MODEL)
+        self.assertEqual(workflow_env_fallback("MODELS_WRITING_MODEL"), MODULE.DEFAULT_WRITING_MODEL)
+        self.assertEqual(workflow_env_fallback("MODELS_REVIEW_MODEL"), MODULE.DEFAULT_REVIEW_MODEL)
 
-        self.assertIsNotNone(workflow_default)
-        self.assertIsNotNone(models_env_default)
-        self.assertEqual(workflow_default, MODULE.DEFAULT_MODEL)
-        self.assertEqual(models_env_default.group(2), MODULE.DEFAULT_MODEL)
+    def test_background_briefs_file_exists_and_loads(self):
+        self.assertTrue(BACKGROUNDS_PATH.exists())
+        briefs = MODULE.load_background_briefs()
+        self.assertGreaterEqual(len(briefs), 3)
+
+    def test_select_hot_topic_prefers_richer_coverage(self):
+        feed_xml = """
+        <rss>
+          <channel>
+            <item>
+              <title>Minor AI update</title>
+              <description><![CDATA[
+                <a href="https://example.com/a1">Minor AI update</a> <font color="#6f6f6f">Source A</font>
+              ]]></description>
+              <link>https://news.google.com/minor</link>
+              <guid>minor</guid>
+            </item>
+            <item>
+              <title>OpenAI ships enterprise AI workflow</title>
+              <description><![CDATA[
+                <a href="https://example.com/b1">OpenAI ships enterprise AI workflow</a> <font color="#6f6f6f">Source B</font>
+                <a href="https://example.com/b2">Customers test the rollout</a> <font color="#6f6f6f">Source C</font>
+                <a href="https://example.com/b3">Analysts debate pricing</a> <font color="#6f6f6f">Source D</font>
+              ]]></description>
+              <link>https://news.google.com/rich</link>
+              <guid>rich</guid>
+            </item>
+          </channel>
+        </rss>
+        """
+        topic = MODULE.select_hot_topic(feed_xml, max_results=5)
+        self.assertEqual(topic.topic_id, "rich")
+        self.assertGreaterEqual(len(topic.related_coverage), 3)
+        self.assertTrue(any(item["topic"] == "OpenAI / ChatGPT" for item in topic.background_briefs))
+
+    def test_parse_related_coverage_extracts_titles_sources_and_urls(self):
+        coverage = MODULE.parse_related_coverage(
+            """
+            <a href="https://example.com/1">Headline One</a> <font color="#6f6f6f">Source One</font>
+            <a href="https://example.com/2">Headline Two</a> <font color="#6f6f6f">Source Two</font>
+            """
+        )
+        self.assertEqual(len(coverage), 2)
+        self.assertEqual(coverage[0].title, "Headline One")
+        self.assertEqual(coverage[0].source_name, "Source One")
+        self.assertEqual(coverage[1].url, "https://example.com/2")
 
     def test_already_generated_today_only_matches_today_ai_posts(self):
         now = datetime(2026, 4, 6, 2, 0, tzinfo=UTC)
@@ -82,7 +124,109 @@ class GenerateHotAIPostTests(unittest.TestCase):
                 )
             )
 
-    def test_generate_analysis_uses_max_completion_tokens(self):
+    def test_generate_analysis_runs_research_write_and_review_stages(self):
+        topic = MODULE.HotTopic(
+            topic_id="topic-1",
+            title="OpenAI enterprise push",
+            summary="Summary",
+            source_name="Google News",
+            published_at="2026-04-06 00:00:00 UTC",
+            url="https://example.com/topic",
+            related_coverage=[
+                MODULE.CoverageSource("Source one", "Source A", "https://example.com/1"),
+                MODULE.CoverageSource("Source two", "Source B", "https://example.com/2"),
+            ],
+            background_briefs=[{"topic": "OpenAI / ChatGPT", "brief": "brief"}],
+        )
+        draft_body = (
+            "## 事件概览\n内容与依据，说明这次变化直接来自企业客户开始付费和试点扩容。\n\n"
+            "## 背景脉络\n这里解释背景。\n\n"
+            "## 已知事实与判断\n### 已知事实\n- 事实1\n- 事实2\n- 事实3\n\n"
+            "### 推断/判断\n- 判断1，因为已有企业试点。\n\n"
+            "### 不确定点\n- 不确定点1。\n\n"
+            "## 为什么值得关注\n因为它会改变预算分配和采购节奏。\n\n"
+            "## 技术与产业影响\n讨论基础设施与产品化。\n\n"
+            "## 真正影响行业的变量\n变量包括成本、集成深度与分发。\n\n"
+            "## 工程负责人该如何响应\n列出评估指标、权限隔离、回滚方案。\n\n"
+            "## 风险与争议\n讨论锁定风险与安全边界。\n\n"
+            "## 可能被高估的地方\n指出短期内不会立刻改变所有团队。\n\n"
+            "## 总结\n最后附上原文链接 https://example.com/topic，并总结判断。"
+        )
+        reviewed_body = (
+            "## 事件概览\n内容与依据，说明这次变化直接来自企业客户开始付费和试点扩容。\n\n"
+            "## 背景脉络\n这里解释背景以及历史脉络。\n\n"
+            "## 已知事实与判断\n### 已知事实\n- 事实1\n- 事实2\n- 事实3\n\n"
+            "### 推断/判断\n- 判断1，因为已有企业试点。\n\n"
+            "### 不确定点\n- 不确定点1。\n\n"
+            "## 为什么值得关注\n因为它会改变预算分配、产品路线和采购节奏。\n\n"
+            "## 技术与产业影响\n讨论基础设施、模型接入和集成成本。\n\n"
+            "## 真正影响行业的变量\n变量包括成本、集成深度、分发和治理能力。\n\n"
+            "## 工程负责人该如何响应\n列出评估指标、权限隔离、回滚方案和审计流程。\n\n"
+            "## 风险与争议\n讨论锁定风险、安全边界和组织错配。\n\n"
+            "## 可能被高估的地方\n指出短期内不会立刻改变所有团队，采购周期仍然很长。\n\n"
+            "## 总结\n最后附上原文链接 https://example.com/topic，并总结判断。"
+            + ("更多分析与执行细节。" * 220)
+        )
+        responses = [
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": (
+                                '{"angle":"angle","facts":["f1","f2","f3"],'
+                                '"inferences":["i1","i2"],"uncertainties":["u1"],'
+                                '"industry_impacts":["impact"],"engineering_actions":["act"],'
+                                '"outline":["事件概览","背景脉络","已知事实与判断","为什么值得关注","技术与产业影响","真正影响行业的变量","工程负责人该如何响应","风险与争议","可能被高估的地方","总结"]}'
+                            )
+                        }
+                    }
+                ]
+            },
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": MODULE.json.dumps(
+                                {"title": "标题", "slug": "custom slug", "excerpt": "摘要", "body": draft_body},
+                                ensure_ascii=False,
+                            )
+                        }
+                    }
+                ]
+            },
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": MODULE.json.dumps(
+                                {
+                                    "approved": True,
+                                    "title": "标题",
+                                    "slug": "custom slug",
+                                    "excerpt": "摘要",
+                                    "issues": ["ok"],
+                                    "body": reviewed_body,
+                                },
+                                ensure_ascii=False,
+                            )
+                        }
+                    }
+                ]
+            },
+        ]
+
+        with mock.patch.dict(MODULE.os.environ, {"MODELS_TOKEN": "test-token"}, clear=False):
+            with mock.patch.object(MODULE, "request_json", side_effect=responses) as request_json:
+                analysis = MODULE.generate_analysis(topic)
+
+        self.assertEqual(request_json.call_count, 3)
+        self.assertEqual(request_json.call_args_list[0].kwargs["payload"]["model"], MODULE.DEFAULT_RESEARCH_MODEL)
+        self.assertEqual(request_json.call_args_list[1].kwargs["payload"]["model"], MODULE.DEFAULT_WRITING_MODEL)
+        self.assertEqual(request_json.call_args_list[2].kwargs["payload"]["model"], MODULE.DEFAULT_REVIEW_MODEL)
+        self.assertEqual(analysis["models"]["research"], MODULE.DEFAULT_RESEARCH_MODEL)
+        self.assertEqual(analysis["slug"], "custom-slug")
+
+    def test_validate_analysis_rejects_missing_sections(self):
         topic = MODULE.HotTopic(
             topic_id="topic-1",
             title="AI topic",
@@ -90,26 +234,16 @@ class GenerateHotAIPostTests(unittest.TestCase):
             source_name="Google News",
             published_at="2026-04-06 00:00:00 UTC",
             url="https://example.com/topic",
+            related_coverage=[
+                MODULE.CoverageSource("Source one", "Source A", "https://example.com/1"),
+                MODULE.CoverageSource("Source two", "Source B", "https://example.com/2"),
+            ],
+            background_briefs=[],
         )
-        response = {
-            "choices": [
-                {
-                    "message": {
-                        "content": '{"title":"标题","slug":"custom slug","excerpt":"摘要","body":"正文"}'
-                    }
-                }
-            ]
-        }
-
-        with mock.patch.dict(MODULE.os.environ, {"MODELS_TOKEN": "test-token"}, clear=False):
-            with mock.patch.object(MODULE, "request_json", return_value=response) as request_json:
-                analysis = MODULE.generate_analysis(topic)
-
-        payload = request_json.call_args.kwargs["payload"]
-        self.assertEqual(payload["temperature"], 1)
-        self.assertEqual(payload["max_completion_tokens"], MODULE.MAX_ANALYSIS_TOKENS)
-        self.assertNotIn("max_tokens", payload)
-        self.assertEqual(analysis["model"], MODULE.DEFAULT_MODEL)
+        research = {"facts": ["a", "b", "c"], "uncertainties": ["u1"]}
+        analysis = {"title": "标题", "excerpt": "摘要", "body": "https://example.com/topic"}
+        errors = MODULE.validate_analysis(topic, research, analysis)
+        self.assertTrue(any("Missing required section heading" in error for error in errors))
 
 
 if __name__ == "__main__":
