@@ -30,6 +30,7 @@ DEFAULT_RESEARCH_MODEL = "openai/gpt-5"
 DEFAULT_WRITING_MODEL = "openai/gpt-4.1"
 DEFAULT_REVIEW_MODEL = "openai/gpt-4.1"
 DEFAULT_MODEL = DEFAULT_RESEARCH_MODEL
+GPT5_MODEL_PREFIX = "openai/gpt-5"
 MAX_RESEARCH_TOKENS = 2600
 MAX_WRITING_TOKENS = 2600
 MAX_REVIEW_TOKENS = 1800
@@ -342,6 +343,17 @@ def resolve_review_model() -> str:
     return resolve_stage_model("MODELS_REVIEW_MODEL", DEFAULT_REVIEW_MODEL)
 
 
+def supports_custom_temperature(model: str) -> bool:
+    normalized_model = clean_text(model).lower()
+    return not normalized_model.startswith(GPT5_MODEL_PREFIX)
+
+
+def add_temperature(payload: dict[str, object], model: str, temperature: float) -> dict[str, object]:
+    if supports_custom_temperature(model):
+        return {**payload, "temperature": temperature}
+    return payload
+
+
 def render_related_coverage(topic: HotTopic) -> str:
     if not topic.related_coverage:
         return "- 无额外关联报道\n"
@@ -364,9 +376,8 @@ def model_response_content(response: dict) -> str:
 def generate_research_package(topic: HotTopic) -> dict[str, object]:
     token = os.environ["MODELS_TOKEN"]
     model = resolve_research_model()
-    payload = {
+    payload = add_temperature({
         "model": model,
-        "temperature": 0.6,
         "max_completion_tokens": MAX_RESEARCH_TOKENS,
         "response_format": {"type": "json_object"},
         "messages": [
@@ -404,7 +415,7 @@ def generate_research_package(topic: HotTopic) -> dict[str, object]:
                 ),
             },
         ],
-    }
+    }, model, 0.6)
     response = request_json(MODELS_API_URL, token=token, payload=payload)
     research = json.loads(strip_code_fences(model_response_content(response)))
     research["model"] = model
@@ -414,9 +425,8 @@ def generate_research_package(topic: HotTopic) -> dict[str, object]:
 def generate_article_draft(topic: HotTopic, research: dict[str, object]) -> dict[str, str]:
     token = os.environ["MODELS_TOKEN"]
     model = resolve_writing_model()
-    payload = {
+    payload = add_temperature({
         "model": model,
-        "temperature": 0.8,
         "max_completion_tokens": MAX_WRITING_TOKENS,
         "response_format": {"type": "json_object"},
         "messages": [
@@ -446,7 +456,7 @@ def generate_article_draft(topic: HotTopic, research: dict[str, object]) -> dict
                 ),
             },
         ],
-    }
+    }, model, 0.8)
     response = request_json(MODELS_API_URL, token=token, payload=payload)
     draft = json.loads(strip_code_fences(model_response_content(response)))
     draft["slug"] = slugify(draft.get("slug") or draft.get("title", ""))
@@ -461,9 +471,8 @@ def review_article_draft(
 ) -> dict[str, object]:
     token = os.environ["MODELS_TOKEN"]
     model = resolve_review_model()
-    payload = {
+    payload = add_temperature({
         "model": model,
-        "temperature": 0.2,
         "max_completion_tokens": MAX_REVIEW_TOKENS,
         "response_format": {"type": "json_object"},
         "messages": [
@@ -493,7 +502,7 @@ def review_article_draft(
                 ),
             },
         ],
-    }
+    }, model, 0.2)
     response = request_json(MODELS_API_URL, token=token, payload=payload)
     review = json.loads(strip_code_fences(model_response_content(response)))
     review["model"] = model
