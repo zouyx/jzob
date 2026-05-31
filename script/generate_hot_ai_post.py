@@ -351,7 +351,7 @@ def supports_custom_temperature(model: str) -> bool:
 def add_temperature(payload: dict[str, object], model: str, temperature: float) -> dict[str, object]:
     if supports_custom_temperature(model):
         return {**payload, "temperature": temperature}
-    return dict(payload)
+    return payload
 
 
 def render_related_coverage(topic: HotTopic) -> str:
