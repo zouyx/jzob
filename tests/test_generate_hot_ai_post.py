@@ -237,6 +237,44 @@ class GenerateHotAIPostTests(unittest.TestCase):
         self.assertEqual(analysis["models"]["research"], MODULE.DEFAULT_RESEARCH_MODEL)
         self.assertEqual(analysis["slug"], "custom-slug")
 
+    def test_model_response_content_supports_structured_content_parts(self):
+        response = {
+            "choices": [
+                {
+                    "message": {
+                        "content": [
+                            {"type": "output_text", "text": '{"title":"标题"'},
+                            {"type": "output_text", "text": ',"body":"正文"}'},
+                        ]
+                    }
+                }
+            ]
+        }
+
+        self.assertEqual(MODULE.model_response_content(response), '{"title":"标题","body":"正文"}')
+
+    def test_parse_model_json_response_extracts_json_from_wrapped_text(self):
+        response = {
+            "choices": [
+                {
+                    "message": {
+                        "content": "下面是整理后的 JSON：\n```json\n{\"title\":\"标题\",\"body\":\"正文\"}\n```"
+                    }
+                }
+            ]
+        }
+
+        parsed = MODULE.parse_model_json_response(response, "Writing")
+
+        self.assertEqual(parsed["title"], "标题")
+        self.assertEqual(parsed["body"], "正文")
+
+    def test_parse_model_json_response_rejects_empty_content(self):
+        response = {"choices": [{"message": {"content": "   "}}]}
+
+        with self.assertRaisesRegex(RuntimeError, "did not include text content"):
+            MODULE.parse_model_json_response(response, "Research")
+
     def test_validate_analysis_rejects_missing_sections(self):
         topic = MODULE.HotTopic(
             topic_id="topic-1",
