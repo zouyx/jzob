@@ -1,0 +1,44 @@
+{
+  "briefs": [
+    {
+      "topic": "OpenAI / ChatGPT",
+      "keywords": ["openai", "chatgpt", "gpt", "sora", "sam altman"],
+      "brief": "观察重点通常包括模型能力发布节奏、商业化压力、与微软关系变化，以及消费者产品与开发者平台是否同步推进。"
+    },
+    {
+      "topic": "Anthropic / Claude",
+      "keywords": ["anthropic", "claude", "haiku", "sonnet", "opus"],
+      "brief": "常见分析角度包括安全叙事、企业客户落地、与 AWS 等基础设施伙伴的绑定程度，以及“更稳健但更贵”的产品定位。"
+    },
+    {
+      "topic": "Google / Gemini",
+      "keywords": ["google", "gemini", "deepmind", "alphabet"],
+      "brief": "需要关注 Google 是在推动模型能力、搜索分发、安卓生态还是云业务协同；不同业务线的整合速度往往决定真实影响。"
+    },
+    {
+      "topic": "Meta / 开源模型",
+      "keywords": ["meta", "llama", "open source", "open-weight"],
+      "brief": "相关热点通常要区分“开源叙事”和“商业护城河”之间的张力，并分析开放权重对生态扩散、成本结构和监管压力的影响。"
+    },
+    {
+      "topic": "AI 安全与治理",
+      "keywords": ["safety", "alignment", "regulation", "policy", "governance", "security"],
+      "brief": "遇到安全、监管或治理新闻时，应区分象征性表态与可执行机制，重点看是否影响模型发布节奏、审计要求、责任归属和跨境合规。"
+    },
+    {
+      "topic": "企业落地",
+      "keywords": ["enterprise", "workflow", "productivity", "copilot", "assistant", "agent"],
+      "brief": "企业应用类新闻需要关注 ROI 是否明确、流程集成成本、数据权限边界、评估指标以及试点到规模化部署之间的组织阻力。"
+    },
+    {
+      "topic": "算力与基础设施",
+      "keywords": ["gpu", "compute", "training", "inference", "datacenter", "supercomputer", "nvidia"],
+      "brief": "算力话题的核心不是硬件名词本身，而是供给约束、资本开支、推理成本、能耗和交付周期是否会改变行业竞争节奏。"
+    },
+    {
+      "topic": "并购、融资与合作",
+      "keywords": ["funding", "valuation", "acquisition", "partnership", "investment", "ipo"],
+      "brief": "资本市场相关新闻要看交易是否改变渠道、分发、算力、客户获取或议价能力，而不只是估值数字的情绪波动。"
+    }
+  ]
+}
