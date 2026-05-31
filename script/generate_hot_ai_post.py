@@ -352,10 +352,15 @@ def extract_text_content(value: object) -> str:
     return ""
 
 
+def truncate_for_error(text: str, max_length: int = ERROR_SNIPPET_MAX_LENGTH) -> str:
+    if len(text) <= max_length:
+        return text
+    return text[:max_length] + "..."
+
+
 def extract_json_object(text: str) -> object | None:
-    for index, char in enumerate(text):
-        if char not in "[{":
-            continue
+    candidate_indexes = sorted(index for index in (text.find("{"), text.find("[")) if index >= 0)
+    for index in candidate_indexes:
         try:
             value, _ = JSON_DECODER.raw_decode(text[index:])
         except json.JSONDecodeError:
@@ -430,7 +435,8 @@ def model_response_content(response: dict) -> str:
     choice_text = extract_text_content(first_choice.get("text"))
     if choice_text.strip():
         return choice_text
-    raise RuntimeError(f"Models API response did not include text content: {json.dumps(first_choice, ensure_ascii=False)}")
+    response_snippet = truncate_for_error(json.dumps(first_choice, ensure_ascii=False))
+    raise RuntimeError(f"Models API response did not include text content: {response_snippet}")
 
 
 def parse_model_json_response(response: dict, stage_name: str) -> dict[str, object]:
@@ -442,7 +448,7 @@ def parse_model_json_response(response: dict, stage_name: str) -> dict[str, obje
     except json.JSONDecodeError:
         parsed = extract_json_object(content)
     if not isinstance(parsed, dict):
-        snippet = content[:ERROR_SNIPPET_MAX_LENGTH]
+        snippet = truncate_for_error(content)
         raise RuntimeError(f"{stage_name} model returned invalid JSON object: {snippet}")
     return parsed
 
