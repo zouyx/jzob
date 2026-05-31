@@ -54,6 +54,14 @@ class GenerateHotAIPostTests(unittest.TestCase):
             self.assertEqual(MODULE.resolve_writing_model(), "openai/gpt-4.1-mini")
             self.assertEqual(MODULE.resolve_review_model(), "openai/gpt-4.1-mini")
 
+    def test_gpt5_models_skip_custom_temperature(self):
+        payload = {"model": "openai/gpt-5"}
+        self.assertNotIn("temperature", MODULE.add_temperature(payload, "openai/gpt-5", 0.6))
+
+    def test_non_gpt5_models_keep_custom_temperature(self):
+        payload = {"model": "openai/gpt-4.1"}
+        self.assertEqual(MODULE.add_temperature(payload, "openai/gpt-4.1", 0.8)["temperature"], 0.8)
+
     def test_workflow_default_models_match_script_defaults(self):
         self.assertEqual(workflow_input_default("research_model"), MODULE.DEFAULT_RESEARCH_MODEL)
         self.assertEqual(workflow_input_default("writing_model"), MODULE.DEFAULT_WRITING_MODEL)
@@ -223,6 +231,9 @@ class GenerateHotAIPostTests(unittest.TestCase):
         self.assertEqual(request_json.call_args_list[0].kwargs["payload"]["model"], MODULE.DEFAULT_RESEARCH_MODEL)
         self.assertEqual(request_json.call_args_list[1].kwargs["payload"]["model"], MODULE.DEFAULT_WRITING_MODEL)
         self.assertEqual(request_json.call_args_list[2].kwargs["payload"]["model"], MODULE.DEFAULT_REVIEW_MODEL)
+        self.assertNotIn("temperature", request_json.call_args_list[0].kwargs["payload"])
+        self.assertEqual(request_json.call_args_list[1].kwargs["payload"]["temperature"], 0.8)
+        self.assertEqual(request_json.call_args_list[2].kwargs["payload"]["temperature"], 0.2)
         self.assertEqual(analysis["models"]["research"], MODULE.DEFAULT_RESEARCH_MODEL)
         self.assertEqual(analysis["slug"], "custom-slug")
 
