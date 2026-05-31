@@ -139,7 +139,7 @@ class GenerateHotAIPostTests(unittest.TestCase):
             background_briefs=[{"topic": "OpenAI / ChatGPT", "brief": "brief"}],
         )
         draft_body = (
-            "## 事件概览\n内容与依据，说明为什么值得关注：因为客户开始付费。\n\n"
+            "## 事件概览\n内容与依据，说明这次变化直接来自企业客户开始付费和试点扩容。\n\n"
             "## 背景脉络\n这里解释背景。\n\n"
             "## 已知事实与判断\n### 已知事实\n- 事实1\n- 事实2\n- 事实3\n\n"
             "### 推断/判断\n- 判断1，因为已有企业试点。\n\n"
@@ -153,7 +153,7 @@ class GenerateHotAIPostTests(unittest.TestCase):
             "## 总结\n最后附上原文链接 https://example.com/topic，并总结判断。"
         )
         reviewed_body = (
-            "## 事件概览\n内容与依据，说明为什么值得关注：因为客户开始付费。\n\n"
+            "## 事件概览\n内容与依据，说明这次变化直接来自企业客户开始付费和试点扩容。\n\n"
             "## 背景脉络\n这里解释背景以及历史脉络。\n\n"
             "## 已知事实与判断\n### 已知事实\n- 事实1\n- 事实2\n- 事实3\n\n"
             "### 推断/判断\n- 判断1，因为已有企业试点。\n\n"
@@ -165,7 +165,7 @@ class GenerateHotAIPostTests(unittest.TestCase):
             "## 风险与争议\n讨论锁定风险、安全边界和组织错配。\n\n"
             "## 可能被高估的地方\n指出短期内不会立刻改变所有团队，采购周期仍然很长。\n\n"
             "## 总结\n最后附上原文链接 https://example.com/topic，并总结判断。"
-            + ("更多分析。" * 200)
+            + ("更多分析与执行细节。" * 220)
         )
         responses = [
             {
