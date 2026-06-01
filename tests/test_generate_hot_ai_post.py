@@ -259,8 +259,7 @@ class GenerateHotAIPostTests(unittest.TestCase):
                 {
                     "message": {
                         "content": [
-                            {"type": "output_text", "text": {"value": '{"title":"标题"'}},
-                            {"type": "output_text", "text": {"value": ',"body":"正文"}'}},
+                            {"type": "output_text", "text": {"value": '{"title":"标题","body":"正文"}'}},
                         ]
                     }
                 }
