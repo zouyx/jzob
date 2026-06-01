@@ -37,10 +37,12 @@ MAX_REVIEW_TOKENS = 1800
 MAX_SLUG_LENGTH = 60
 POST_FILENAME_PREFIX = "ai"
 REQUEST_TIMEOUT_SECONDS = 120
+ERROR_SNIPPET_MAX_LENGTH = 500
 MIN_FACT_COUNT = 3
 MIN_UNCERTAINTY_COUNT = 1
 MIN_RELATED_COVERAGE_COUNT = 2
 MIN_BODY_LENGTH = 1400
+JSON_DECODER = json.JSONDecoder()
 GENERIC_PHRASES = (
     "值得关注",
     "影响深远",
@@ -321,6 +323,63 @@ def strip_code_fences(content: str) -> str:
     return content
 
 
+def extract_text_content(value: object) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        parts: list[str] = []
+        for item in value:
+            if isinstance(item, str):
+                parts.append(item)
+                continue
+            if not isinstance(item, dict):
+                continue
+            text = item.get("text")
+            if isinstance(text, str):
+                parts.append(text)
+                continue
+            for field_name in ("content", "value"):
+                field_value = item.get(field_name)
+                if isinstance(field_value, str):
+                    parts.append(field_value)
+                    break
+        return "".join(parts)
+    if isinstance(value, dict):
+        for field_name in ("text", "content", "value"):
+            field_value = value.get(field_name)
+            if isinstance(field_value, str):
+                return field_value
+    return ""
+
+
+def truncate_for_error(text: str, max_length: int = ERROR_SNIPPET_MAX_LENGTH) -> str:
+    if len(text) <= max_length:
+        return text
+    return text[:max_length] + "..."
+
+
+def summarize_choice(first_choice: dict[str, object]) -> str:
+    keys = sorted(str(key) for key in first_choice.keys())
+    message = first_choice.get("message")
+    message_keys = sorted(str(key) for key in message.keys()) if isinstance(message, dict) else []
+    return f"choice_keys={keys}, message_keys={message_keys}"
+
+
+def extract_json_object(text: str) -> object | None:
+    candidate_indexes: set[int] = set()
+    index = text.find("{")
+    while index >= 0:
+        candidate_indexes.add(index)
+        index = text.find("{", index + 1)
+    for index in sorted(candidate_indexes):
+        try:
+            value, _ = JSON_DECODER.raw_decode(text[index:])
+        except json.JSONDecodeError:
+            continue
+        return value
+    return None
+
+
 def resolve_stage_model(env_name: str, default_model: str) -> str:
     configured_model = clean_text(os.environ.get(env_name, ""))
     if configured_model:
@@ -370,7 +429,38 @@ def render_background_briefs(topic: HotTopic) -> str:
 
 
 def model_response_content(response: dict) -> str:
-    return response["choices"][0]["message"]["content"]
+    choices = response.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise RuntimeError("Models API response did not include any choices.")
+    first_choice = choices[0]
+    if not isinstance(first_choice, dict):
+        raise RuntimeError("Models API response choice is not an object.")
+    message = first_choice.get("message")
+    if isinstance(message, dict):
+        content = extract_text_content(message.get("content"))
+        if content.strip():
+            return content
+        refusal = clean_text(extract_text_content(message.get("refusal")))
+        if refusal:
+            raise RuntimeError(f"Models API request was refused: {refusal}")
+    choice_text = extract_text_content(first_choice.get("text"))
+    if choice_text.strip():
+        return choice_text
+    raise RuntimeError(f"Models API response did not include text content: {summarize_choice(first_choice)}")
+
+
+def parse_model_json_response(response: dict, stage_name: str) -> dict[str, object]:
+    content = strip_code_fences(model_response_content(response))
+    if not content.strip():
+        raise RuntimeError(f"{stage_name} model returned empty content.")
+    try:
+        parsed = json.loads(content)
+    except json.JSONDecodeError:
+        parsed = extract_json_object(content)
+    if not isinstance(parsed, dict):
+        snippet = truncate_for_error(content)
+        raise RuntimeError(f"{stage_name} model returned invalid JSON object: {snippet}")
+    return parsed
 
 
 def generate_research_package(topic: HotTopic) -> dict[str, object]:
@@ -417,7 +507,7 @@ def generate_research_package(topic: HotTopic) -> dict[str, object]:
         ],
     }, model, 0.6)
     response = request_json(MODELS_API_URL, token=token, payload=payload)
-    research = json.loads(strip_code_fences(model_response_content(response)))
+    research = parse_model_json_response(response, "Research")
     research["model"] = model
     return research
 
@@ -458,7 +548,7 @@ def generate_article_draft(topic: HotTopic, research: dict[str, object]) -> dict
         ],
     }, model, 0.8)
     response = request_json(MODELS_API_URL, token=token, payload=payload)
-    draft = json.loads(strip_code_fences(model_response_content(response)))
+    draft = parse_model_json_response(response, "Writing")
     draft["slug"] = slugify(draft.get("slug") or draft.get("title", ""))
     draft["model"] = model
     return draft
@@ -504,7 +594,7 @@ def review_article_draft(
         ],
     }, model, 0.2)
     response = request_json(MODELS_API_URL, token=token, payload=payload)
-    review = json.loads(strip_code_fences(model_response_content(response)))
+    review = parse_model_json_response(response, "Review")
     review["model"] = model
     return review
 
