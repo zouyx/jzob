@@ -329,7 +329,7 @@ def extract_text_content(value: object) -> str:
     if isinstance(value, list):
         return "".join(extract_text_content(item) for item in value)
     if isinstance(value, dict):
-        for field_name in ("text", "content", "value", "output_text"):
+        for field_name in ("text", "content", "value"):
             extracted = extract_text_content(value.get(field_name))
             if extracted:
                 return extracted
