@@ -330,8 +330,9 @@ def extract_text_content(value: object) -> str:
         return "".join(extract_text_content(item) for item in value)
     if isinstance(value, dict):
         for field_name in ("text", "content", "value"):
-            extracted = extract_text_content(value.get(field_name))
-            if extracted:
+            field_value = value.get(field_name)
+            extracted = extract_text_content(field_value)
+            if extracted or field_value == "":
                 return extracted
         for field_name in ("json", "object", "data"):
             field_value = value.get(field_name)
