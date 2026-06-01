@@ -327,28 +327,16 @@ def extract_text_content(value: object) -> str:
     if isinstance(value, str):
         return value
     if isinstance(value, list):
-        parts: list[str] = []
-        for item in value:
-            if isinstance(item, str):
-                parts.append(item)
-                continue
-            if not isinstance(item, dict):
-                continue
-            text = item.get("text")
-            if isinstance(text, str):
-                parts.append(text)
-                continue
-            for field_name in ("content", "value"):
-                field_value = item.get(field_name)
-                if isinstance(field_value, str):
-                    parts.append(field_value)
-                    break
-        return "".join(parts)
+        return "".join(extract_text_content(item) for item in value)
     if isinstance(value, dict):
-        for field_name in ("text", "content", "value"):
+        for field_name in ("text", "content", "value", "output_text"):
+            extracted = extract_text_content(value.get(field_name))
+            if extracted:
+                return extracted
+        for field_name in ("json", "object", "data"):
             field_value = value.get(field_name)
-            if isinstance(field_value, str):
-                return field_value
+            if isinstance(field_value, (dict, list)):
+                return json.dumps(field_value, ensure_ascii=False)
     return ""
 
 

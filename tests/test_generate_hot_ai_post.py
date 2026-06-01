@@ -253,6 +253,22 @@ class GenerateHotAIPostTests(unittest.TestCase):
 
         self.assertEqual(MODULE.model_response_content(response), '{"title":"标题","body":"正文"}')
 
+    def test_model_response_content_supports_nested_text_values(self):
+        response = {
+            "choices": [
+                {
+                    "message": {
+                        "content": [
+                            {"type": "output_text", "text": {"value": '{"title":"标题"'}},
+                            {"type": "output_text", "text": {"value": ',"body":"正文"}'}},
+                        ]
+                    }
+                }
+            ]
+        }
+
+        self.assertEqual(MODULE.model_response_content(response), '{"title":"标题","body":"正文"}')
+
     def test_parse_model_json_response_extracts_json_from_wrapped_text(self):
         response = {
             "choices": [
