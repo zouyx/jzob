@@ -35,8 +35,8 @@ DEFAULT_REVIEW_MODEL = "openai/gpt-4.1"
 DEFAULT_MODEL = DEFAULT_RESEARCH_MODEL
 GPT5_MODEL_PREFIX = "openai/gpt-5"
 MAX_RESEARCH_TOKENS = 8000
-MAX_WRITING_TOKENS = 2600
-MAX_REVIEW_TOKENS = 1800
+MAX_WRITING_TOKENS = 4000
+MAX_REVIEW_TOKENS = 4000
 MAX_SLUG_LENGTH = 60
 POST_FILENAME_PREFIX = "ai"
 REQUEST_TIMEOUT_SECONDS = 120
@@ -554,8 +554,7 @@ def model_response_content(response: dict) -> str:
     message = first_choice.get("message")
     if isinstance(message, dict):
         content = extract_text_content(message.get("content"))
-        if content.strip():
-            return content
+        finish_reason = first_choice.get("finish_reason", "")
         refusal = clean_text(extract_text_content(message.get("refusal")))
         if refusal:
             raise RuntimeError(f"Models API request was refused: {refusal}")
@@ -563,12 +562,14 @@ def model_response_content(response: dict) -> str:
         if blocked:
             reason = first_choice.get("finish_reason", "unknown")
             raise RuntimeError(f"Models API response was blocked by content filter ({blocked}, finish_reason={reason})")
-        finish_reason = first_choice.get("finish_reason", "")
         if finish_reason == "length":
+            hint = content[:200].strip() if content.strip() else "empty"
             raise RuntimeError(
-                f"Model hit token limit (max_completion_tokens={first_choice.get('max_completion_tokens', '?')}). "
-                "Increase the token limit or reduce the response size."
+                f"Model hit token limit (max_completion_tokens unknown). "
+                f"Increase the token limit or reduce the response size. Content preview: {hint}..."
             )
+        if content.strip():
+            return content
     choice_text = extract_text_content(first_choice.get("text"))
     if choice_text.strip():
         return choice_text
