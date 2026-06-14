@@ -275,7 +275,7 @@ class GenerateHotAIPostTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "did not include text content"):
             MODULE.parse_model_json_response(response, "Research")
 
-    def test_validate_analysis_rejects_missing_sections(self):
+    def test_validate_analysis_rejects_short_body(self):
         topic = MODULE.HotTopic(
             topic_id="topic-1",
             title="AI topic",
@@ -283,16 +283,13 @@ class GenerateHotAIPostTests(unittest.TestCase):
             source_name="Google News",
             published_at="2026-04-06 00:00:00 UTC",
             url="https://example.com/topic",
-            related_coverage=[
-                MODULE.CoverageSource("Source one", "Source A", "https://example.com/1"),
-                MODULE.CoverageSource("Source two", "Source B", "https://example.com/2"),
-            ],
+            related_coverage=[],
             background_briefs=[],
         )
         research = {"facts": ["a", "b", "c"], "uncertainties": ["u1"]}
-        analysis = {"title": "标题", "excerpt": "摘要", "body": "https://example.com/topic"}
+        analysis = {"title": "标题", "excerpt": "摘要", "body": "short"}
         errors = MODULE.validate_analysis(topic, research, analysis)
-        self.assertTrue(any("Missing required section heading" in error for error in errors))
+        self.assertTrue(any("Body is too short" in error for error in errors))
 
 
 if __name__ == "__main__":

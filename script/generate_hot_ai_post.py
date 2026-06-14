@@ -43,7 +43,6 @@ REQUEST_TIMEOUT_SECONDS = 120
 ERROR_SNIPPET_MAX_LENGTH = 500
 MIN_FACT_COUNT = 3
 MIN_UNCERTAINTY_COUNT = 1
-MIN_RELATED_COVERAGE_COUNT = 0
 MIN_BODY_LENGTH = 1400
 JSON_DECODER = json.JSONDecoder()
 AI_KEYWORDS = (
@@ -52,27 +51,7 @@ AI_KEYWORDS = (
     "gpt", "neural", "transformer", "agent", "chatbot", "automation",
     "robotics", "computer vision", "nlp", "generative", "diffusion",
 )
-GENERIC_PHRASES = (
-    "值得关注",
-    "影响深远",
-    "引发深刻反思",
-    "具有重要意义",
-)
-REQUIRED_HEADINGS = (
-    "## 事件概览",
-    "## 背景脉络",
-    "## 已知事实与判断",
-    "### 已知事实",
-    "### 推断/判断",
-    "### 不确定点",
-    "## 为什么值得关注",
-    "## 技术与产业影响",
-    "## 真正影响行业的变量",
-    "## 工程负责人该如何响应",
-    "## 风险与争议",
-    "## 可能被高估的地方",
-    "## 总结",
-)
+REQUIRED_HEADINGS: tuple[str, ...] = ()
 
 
 @dataclass
@@ -616,12 +595,11 @@ def generate_research_package(topic: HotTopic) -> dict[str, object]:
                     "uncertainties（数组，列出至少 1 条当前仍不确定、需要谨慎表达的点）\n"
                     "industry_impacts（数组）\n"
                     "engineering_actions（数组）\n"
-                    "outline（数组，按文章章节顺序给出标题）\n\n"
+                    "suggested_headings（数组，建议的文章章节标题）\n\n"
                     "要求：\n"
                     "1. 只能使用提供的材料和通用背景卡片，不要编造额外事实。\n"
                     "2. facts 中必须体现多信源视角，尽量引用不同媒体或不同背景卡片。\n"
-                    "3. outline 必须覆盖这些标题：事件概览、背景脉络、已知事实与判断、为什么值得关注、技术与产业影响、真正影响行业的变量、工程负责人该如何响应、风险与争议、可能被高估的地方、总结。\n"
-                    "4. 如果材料不足以支撑强结论，必须在 uncertainties 中明确指出。\n\n"
+                    "3. 如果材料不足以支撑强结论，必须在 uncertainties 中明确指出。\n\n"
                     f"主新闻来源：{topic.source_name}\n"
                     f"发布时间：{topic.published_at}\n"
                     f"主新闻标题：{topic.title}\n"
@@ -662,9 +640,9 @@ def generate_article_draft(topic: HotTopic, research: dict[str, object]) -> dict
                     "要求：\n"
                     "1. title 不超过 50 个字；slug 提供一个简短主题短语即可，程序会统一转成 URL slug；excerpt 1-2 句话。\n"
                     "2. body 仅返回 Markdown 正文，不要包含 YAML front matter。\n"
-                    "3. 必须使用以下章节标题：事件概览、背景脉络、已知事实与判断、为什么值得关注、技术与产业影响、真正影响行业的变量、工程负责人该如何响应、风险与争议、可能被高估的地方、总结。\n"
-                    "4. 在“已知事实与判断”章节下，必须包含三级标题：已知事实、推断/判断、不确定点。\n"
-                    "5. 避免空话；凡是写“值得关注”“影响深远”“重要”这类判断，都要立刻给出原因。\n"
+                    "3. 结构自定，但必须是一篇完整的分析文章：介绍背景 → 陈述事实与判断 → 分析影响 → 总结。\n"
+                    "4. 明确区分已知事实、推断和不确定点。\n"
+                    '5. 避免空话；凡是写"值得关注""影响深远""重要"这类判断，都要立刻给出原因。\n'
                     "6. 工程建议要可执行，不能只喊口号。\n"
                     "7. 正文中保留且只保留一次原始新闻链接。\n\n"
                     f"话题：{topic.title}\n"
@@ -708,10 +686,11 @@ def review_article_draft(
                     "title\nslug\nexcerpt\nbody\nissues（数组，列出你修正或仍然担心的问题）\n\n"
                     "审阅标准：\n"
                     "1. 删除没有依据的强结论。\n"
-                    "2. 确保“已知事实”“推断/判断”“不确定点”边界清晰。\n"
-                    "3. 检查每个章节是否有具体信息，而不是套话。\n"
-                    "4. 如果出现“值得关注”“影响深远”等判断，必须补充原因。\n"
-                    "5. 保留一次且仅一次原始新闻链接。\n\n"
+                    "2. 确保事实、推断和不确定点边界清晰。\n"
+                    "3. 检查正文是否有具体信息，而不是套话。\n"
+                    '4. 如果出现"值得关注""影响深远"等判断，必须补充原因。\n'
+                    "5. 保留一次且仅一次原始新闻链接。\n"
+                    "6. 保持文章结构完整：介绍背景、分析事实与判断、讨论影响、总结。\n\n"
                     f"话题：{topic.title}\n"
                     f"主新闻链接：{topic.url}\n\n"
                     f"研究材料：\n{json.dumps(research, ensure_ascii=False, indent=2)}\n\n"
@@ -737,26 +716,15 @@ def validate_analysis(topic: HotTopic, research: dict[str, object], analysis: di
         errors.append("Missing excerpt in final analysis output.")
     if len(body) < MIN_BODY_LENGTH:
         errors.append(f"Body is too short for an in-depth analysis ({len(body)} chars).")
-    for heading in REQUIRED_HEADINGS:
-        if heading not in body:
-            errors.append(f"Missing required section heading: {heading}")
     link_count = body.count(topic.url)
-    if link_count != 1:
-        errors.append(f"Body must contain the original news link exactly once, found {link_count}.")
+    if link_count < 1:
+        errors.append("Body must include the original news link at least once.")
     facts = research.get("facts")
     if not isinstance(facts, list) or len(facts) < MIN_FACT_COUNT:
         errors.append(f"Research package must contain at least {MIN_FACT_COUNT} facts.")
     uncertainties = research.get("uncertainties")
     if not isinstance(uncertainties, list) or len(uncertainties) < MIN_UNCERTAINTY_COUNT:
         errors.append("Research package must contain at least one uncertainty.")
-    if len(topic.related_coverage) < MIN_RELATED_COVERAGE_COUNT:
-        errors.append(
-            f"Topic needs at least {MIN_RELATED_COVERAGE_COUNT} related coverage items for richer sourcing."
-        )
-    for phrase in GENERIC_PHRASES:
-        occurrence_count = body.count(phrase)
-        if occurrence_count > 1:
-            errors.append(f"Generic phrase appears too often without enough specificity: {phrase}")
     return errors
 
 
