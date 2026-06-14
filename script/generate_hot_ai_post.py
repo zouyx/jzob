@@ -428,6 +428,20 @@ def render_background_briefs(topic: HotTopic) -> str:
     return "\n".join(f"- {item['topic']}: {item['brief']}" for item in topic.background_briefs)
 
 
+def content_filter_blocked(first_choice: dict) -> str | None:
+    filters = first_choice.get("content_filter_results")
+    if not isinstance(filters, dict):
+        return None
+    blocked = [
+        f"{cat}(severity={details.get('severity', 'unknown')})"
+        for cat, details in filters.items()
+        if isinstance(details, dict) and details.get("filtered")
+    ]
+    if blocked:
+        return "content filtered: " + ", ".join(blocked)
+    return None
+
+
 def model_response_content(response: dict) -> str:
     choices = response.get("choices")
     if not isinstance(choices, list) or not choices:
@@ -443,6 +457,10 @@ def model_response_content(response: dict) -> str:
         refusal = clean_text(extract_text_content(message.get("refusal")))
         if refusal:
             raise RuntimeError(f"Models API request was refused: {refusal}")
+        blocked = content_filter_blocked(first_choice)
+        if blocked:
+            finish_reason = first_choice.get("finish_reason", "unknown")
+            raise RuntimeError(f"Models API response was blocked by content filter ({blocked}, finish_reason={finish_reason})")
     choice_text = extract_text_content(first_choice.get("text"))
     if choice_text.strip():
         return choice_text
