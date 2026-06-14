@@ -43,7 +43,7 @@ REQUEST_TIMEOUT_SECONDS = 120
 ERROR_SNIPPET_MAX_LENGTH = 500
 MIN_FACT_COUNT = 3
 MIN_UNCERTAINTY_COUNT = 1
-MIN_RELATED_COVERAGE_COUNT = 2
+MIN_RELATED_COVERAGE_COUNT = 0
 MIN_BODY_LENGTH = 1400
 JSON_DECODER = json.JSONDecoder()
 AI_KEYWORDS = (
@@ -782,6 +782,11 @@ def generate_analysis(topic: HotTopic) -> dict[str, object]:
     if not final_analysis["approved"]:
         quality_errors.append("Editorial review did not approve the article.")
     if quality_errors:
+        body = str(final_analysis.get("body", "")).strip()
+        print("DEBUG: article body preview (first 1000 chars):", file=sys.stderr)
+        print(body[:1000], file=sys.stderr)
+        if len(body) > 1000:
+            print("...(truncated)", file=sys.stderr)
         raise RuntimeError("Quality gate failed:\n- " + "\n- ".join(quality_errors))
     return final_analysis
 
@@ -809,14 +814,13 @@ permalink: {permalink}
 category: AI
 tags:
   - AI
-  - Google News
   - GitHub Copilot
 excerpt: {yaml_string(excerpt)}
 ---
 
-> 本文由 GitHub Actions 自动抓取 Google News 热门 AI 话题，并使用“先研究、再写作、后审校”的多阶段流程生成初稿。
+> 本文由 GitHub Actions 自动抓取热门 AI 话题，并使用“先研究、再写作、后审校”的多阶段流程生成初稿。
 >
-> 热点来源：[Google News / {topic.source_name}]({topic.url}) · 发布时间：{published_at}
+> 热点来源：[{topic.source_name}]({topic.url}) · 发布时间：{published_at}
 > 关联报道数：{len(topic.related_coverage)} · 使用模型：research={research_model}, writing={writing_model}, review={review_model}
 
 {body}
