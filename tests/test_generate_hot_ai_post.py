@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import re
 import sys
 import tempfile
@@ -6,6 +7,7 @@ import unittest
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
+from urllib.error import HTTPError
 from unittest import mock
 
 
@@ -290,6 +292,38 @@ class GenerateHotAIPostTests(unittest.TestCase):
         analysis = {"title": "标题", "excerpt": "摘要", "body": "short"}
         errors = MODULE.validate_analysis(topic, research, analysis)
         self.assertTrue(any("Body is too short" in error for error in errors))
+
+    def test_request_json_retries_on_429_then_succeeds(self):
+        error = HTTPError(
+            url="https://example.com",
+            code=429,
+            msg="Too Many Requests",
+            hdrs={"Retry-After": "0"},
+            fp=io.BytesIO(b"rate limited"),
+        )
+        ok_response = mock.MagicMock()
+        ok_response.__enter__.return_value = io.StringIO('{"ok": true}')
+        with mock.patch.object(MODULE.urllib.request, "urlopen", side_effect=[error, ok_response]) as urlopen:
+            with mock.patch.object(MODULE.time, "sleep") as sleep:
+                result = MODULE.request_json("https://example.com", token="t", payload={"a": 1})
+        self.assertTrue(result["ok"])
+        self.assertEqual(urlopen.call_count, 2)
+        sleep.assert_called_once_with(0)
+
+    def test_request_json_does_not_retry_on_400(self):
+        error = HTTPError(
+            url="https://example.com",
+            code=400,
+            msg="Bad Request",
+            hdrs={},
+            fp=io.BytesIO(b"bad request"),
+        )
+        with mock.patch.object(MODULE.urllib.request, "urlopen", side_effect=error) as urlopen:
+            with mock.patch.object(MODULE.time, "sleep") as sleep:
+                with self.assertRaisesRegex(RuntimeError, r"HTTP 400"):
+                    MODULE.request_json("https://example.com", token="t")
+        self.assertEqual(urlopen.call_count, 1)
+        sleep.assert_not_called()
 
 
 if __name__ == "__main__":
