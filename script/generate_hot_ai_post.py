@@ -34,7 +34,7 @@ DEFAULT_WRITING_MODEL = "openai/gpt-4.1"
 DEFAULT_REVIEW_MODEL = "openai/gpt-4.1"
 DEFAULT_MODEL = DEFAULT_RESEARCH_MODEL
 GPT5_MODEL_PREFIX = "openai/gpt-5"
-MAX_RESEARCH_TOKENS = 2600
+MAX_RESEARCH_TOKENS = 8000
 MAX_WRITING_TOKENS = 2600
 MAX_REVIEW_TOKENS = 1800
 MAX_SLUG_LENGTH = 60
@@ -561,21 +561,17 @@ def model_response_content(response: dict) -> str:
             raise RuntimeError(f"Models API request was refused: {refusal}")
         blocked = content_filter_blocked(first_choice)
         if blocked:
-            finish_reason = first_choice.get("finish_reason", "unknown")
-            raise RuntimeError(f"Models API response was blocked by content filter ({blocked}, finish_reason={finish_reason})")
-        print(
-            "DEBUG: content empty, raw first_choice:\n"
-            + json.dumps(first_choice, indent=2, ensure_ascii=False, default=str),
-            file=sys.stderr,
-        )
+            reason = first_choice.get("finish_reason", "unknown")
+            raise RuntimeError(f"Models API response was blocked by content filter ({blocked}, finish_reason={reason})")
+        finish_reason = first_choice.get("finish_reason", "")
+        if finish_reason == "length":
+            raise RuntimeError(
+                f"Model hit token limit (max_completion_tokens={first_choice.get('max_completion_tokens', '?')}). "
+                "Increase the token limit or reduce the response size."
+            )
     choice_text = extract_text_content(first_choice.get("text"))
     if choice_text.strip():
         return choice_text
-    print(
-        "DEBUG: no text in choice either, full dump:\n"
-        + json.dumps(first_choice, indent=2, ensure_ascii=False, default=str),
-        file=sys.stderr,
-    )
     raise RuntimeError(f"Models API response did not include text content: {summarize_choice(first_choice)}")
 
 
