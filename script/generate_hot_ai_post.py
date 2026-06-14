@@ -461,9 +461,19 @@ def model_response_content(response: dict) -> str:
         if blocked:
             finish_reason = first_choice.get("finish_reason", "unknown")
             raise RuntimeError(f"Models API response was blocked by content filter ({blocked}, finish_reason={finish_reason})")
+        print(
+            "DEBUG: content empty, raw first_choice:\n"
+            + json.dumps(first_choice, indent=2, ensure_ascii=False, default=str),
+            file=sys.stderr,
+        )
     choice_text = extract_text_content(first_choice.get("text"))
     if choice_text.strip():
         return choice_text
+    print(
+        "DEBUG: no text in choice either, full dump:\n"
+        + json.dumps(first_choice, indent=2, ensure_ascii=False, default=str),
+        file=sys.stderr,
+    )
     raise RuntimeError(f"Models API response did not include text content: {summarize_choice(first_choice)}")
 
 
