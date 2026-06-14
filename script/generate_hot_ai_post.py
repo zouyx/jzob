@@ -25,6 +25,9 @@ POSTS_DIR = REPO_ROOT / "_posts"
 BACKGROUND_BRIEFS_PATH = Path(__file__).with_name("ai_topic_backgrounds.json")
 DEFAULT_QUERY = 'AI OR "artificial intelligence" OR OpenAI OR Anthropic OR Claude OR Gemini OR DeepSeek OR Copilot when:1d'
 GOOGLE_NEWS_RSS_URL = os.environ.get("GOOGLE_NEWS_RSS_URL", "https://news.google.com/rss/search")
+HACKER_NEWS_RSS_URL = os.environ.get("HACKER_NEWS_RSS_URL", "https://news.ycombinator.com/rss")
+ARXIV_RSS_URL = os.environ.get("ARXIV_RSS_URL", "https://rss.arxiv.org/rss/cs.AI")
+DEFAULT_SOURCE = os.environ.get("HOT_AI_SOURCE", "hackernews")
 MODELS_API_URL = os.environ.get("MODELS_API_URL", "https://models.github.ai/inference/chat/completions")
 DEFAULT_RESEARCH_MODEL = "openai/gpt-5"
 DEFAULT_WRITING_MODEL = "openai/gpt-4.1"
@@ -43,6 +46,12 @@ MIN_UNCERTAINTY_COUNT = 1
 MIN_RELATED_COVERAGE_COUNT = 2
 MIN_BODY_LENGTH = 1400
 JSON_DECODER = json.JSONDecoder()
+AI_KEYWORDS = (
+    "ai", "artificial intelligence", "openai", "anthropic", "claude", "gemini",
+    "deepseek", "copilot", "machine learning", "deep learning", "llm", "large language model",
+    "gpt", "neural", "transformer", "agent", "chatbot", "automation",
+    "robotics", "computer vision", "nlp", "generative", "diffusion",
+)
 GENERIC_PHRASES = (
     "值得关注",
     "影响深远",
@@ -254,11 +263,16 @@ def score_hot_topic(topic: HotTopic) -> tuple[int, int, int]:
     )
 
 
+def is_ai_related(*texts: str) -> bool:
+    combined = " ".join(texts).lower()
+    return any(kw in combined for kw in AI_KEYWORDS)
+
+
 def select_hot_topic(feed_xml: str, max_results: int) -> HotTopic:
     root = ElementTree.fromstring(feed_xml)
     items = root.findall("./channel/item")
     if not items:
-        raise RuntimeError("Google News RSS returned no AI topics to analyze.")
+        raise RuntimeError("RSS feed returned no items to analyze.")
 
     candidates: list[HotTopic] = []
     for item in items[:max_results]:
@@ -287,14 +301,70 @@ def select_hot_topic(feed_xml: str, max_results: int) -> HotTopic:
         )
 
     if not candidates:
-        raise RuntimeError("Google News RSS returned no usable AI topics to analyze.")
+        raise RuntimeError("RSS feed returned no usable AI topics to analyze.")
 
     candidates.sort(key=score_hot_topic, reverse=True)
     return candidates[0]
 
 
-def fetch_hot_ai_topic() -> HotTopic:
-    max_results = int(os.environ.get("HOT_AI_TOPIC_MAX_RESULTS") or "10")
+def fetch_hacker_news_topics(max_results: int) -> list[HotTopic]:
+    feed_xml = request_text(HACKER_NEWS_RSS_URL)
+    root = ElementTree.fromstring(feed_xml)
+    items = root.findall("./channel/item")
+    candidates: list[HotTopic] = []
+    for item in items[:max_results]:
+        title = clean_text(item.findtext("title", ""))
+        link = clean_text(item.findtext("link", ""))
+        if not title or not link or not is_ai_related(title):
+            continue
+        description_html = item.findtext("description", "") or ""
+        summary = strip_html(description_html)
+        published_at = normalize_published_at(item.findtext("pubDate", ""))
+        source_name = "Hacker News"
+        background_briefs = select_background_briefs(title, summary, [])
+        candidates.append(HotTopic(
+            topic_id=link,
+            title=title,
+            summary=summary,
+            source_name=source_name,
+            published_at=published_at,
+            url=link,
+            related_coverage=[],
+            background_briefs=background_briefs,
+        ))
+    return candidates
+
+
+def fetch_arxiv_papers(max_results: int) -> list[HotTopic]:
+    feed_xml = request_text(ARXIV_RSS_URL)
+    root = ElementTree.fromstring(feed_xml)
+    items = root.findall("./channel/item")
+    candidates: list[HotTopic] = []
+    for item in items[:max_results]:
+        raw_title = clean_text(item.findtext("title", ""))
+        title = re.sub(r"^Title:\s*", "", raw_title, flags=re.IGNORECASE).strip()
+        link = clean_text(item.findtext("link", ""))
+        if not title or not link:
+            continue
+        description_html = item.findtext("description", "") or ""
+        summary = strip_html(description_html)
+        published_at = normalize_published_at(item.findtext("pubDate", ""))
+        source_name = "arXiv"
+        background_briefs = select_background_briefs(title, summary, [])
+        candidates.append(HotTopic(
+            topic_id=link,
+            title=title,
+            summary=summary,
+            source_name=source_name,
+            published_at=published_at,
+            url=link,
+            related_coverage=[],
+            background_briefs=background_briefs,
+        ))
+    return candidates
+
+
+def fetch_google_news_topics(max_results: int) -> list[HotTopic]:
     params = {
         "q": os.environ.get("HOT_AI_TOPIC_QUERY") or DEFAULT_QUERY,
         "hl": "en-US",
@@ -303,7 +373,39 @@ def fetch_hot_ai_topic() -> HotTopic:
     }
     query = urllib.parse.urlencode(params)
     feed_xml = request_text(f"{GOOGLE_NEWS_RSS_URL}?{query}")
-    return select_hot_topic(feed_xml, max_results)
+    return [select_hot_topic(feed_xml, max_results)]
+
+
+SOURCE_FETCHERS: dict = {
+    "google": fetch_google_news_topics,
+    "hackernews": fetch_hacker_news_topics,
+    "arxiv": fetch_arxiv_papers,
+}
+
+
+def fetch_hot_ai_topic() -> HotTopic:
+    max_results = int(os.environ.get("HOT_AI_TOPIC_MAX_RESULTS") or "10")
+    source = os.environ.get("HOT_AI_SOURCE") or DEFAULT_SOURCE
+    sources = [s.strip() for s in source.split(",") if s.strip()]
+    all_candidates: list[HotTopic] = []
+    errors: list[str] = []
+    for src in sources:
+        fetcher = SOURCE_FETCHERS.get(src)
+        if fetcher is None:
+            errors.append(f"Unknown source: {src}")
+            continue
+        try:
+            candidates = fetcher(max_results)
+            all_candidates.extend(candidates)
+            print(f"Fetched {len(candidates)} candidates from {src}", file=sys.stderr)
+        except Exception as exc:
+            errors.append(f"{src}: {exc}")
+            print(f"Source {src} failed: {exc}", file=sys.stderr)
+    if not all_candidates:
+        detail = "; ".join(errors) if errors else "no candidates returned"
+        raise RuntimeError(f"No hot AI topic found ({detail})")
+    all_candidates.sort(key=score_hot_topic, reverse=True)
+    return all_candidates[0]
 
 
 def slugify(text: str) -> str:

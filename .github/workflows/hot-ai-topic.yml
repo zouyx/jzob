@@ -3,12 +3,16 @@ name: Generate Hot AI Topic Post
 on:
   workflow_dispatch:
     inputs:
+      source:
+        description: 'Data source: hackernews, arxiv, google, or comma-separated (e.g. hackernews,arxiv)'
+        required: false
+        default: hackernews
       query:
-        description: Google News search query used to find hot AI topics
+        description: Google News search query (only used when source=google)
         required: false
         default: 'AI OR "artificial intelligence" OR OpenAI OR Anthropic OR Claude OR Gemini OR DeepSeek OR Copilot when:1d'
       max_results:
-        description: Number of candidate topics to inspect from Google News
+        description: Maximum candidate topics per source
         required: false
         default: '10'
       model:
@@ -57,6 +61,7 @@ jobs:
         id: generate
         env:
           MODELS_TOKEN: ${{ secrets.MODELS_TOKEN }}
+          HOT_AI_SOURCE: ${{ github.event.inputs.source || 'hackernews' }}
           HOT_AI_TOPIC_QUERY: ${{ github.event.inputs.query || '' }}
           HOT_AI_TOPIC_MAX_RESULTS: ${{ github.event.inputs.max_results || '10' }}
           MODELS_MODEL: ${{ github.event.inputs.model || '' }}
