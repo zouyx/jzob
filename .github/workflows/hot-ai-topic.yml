@@ -14,7 +14,7 @@ on:
       max_results:
         description: Maximum candidate topics per source
         required: false
-        default: '10'
+        default: '5'
       topic_count:
         description: Number of top topics to generate posts for
         required: false
@@ -67,7 +67,7 @@ jobs:
           MODELS_TOKEN: ${{ secrets.MODELS_TOKEN }}
           HOT_AI_SOURCE: ${{ github.event.inputs.source || 'arxiv' }}
           HOT_AI_TOPIC_QUERY: ${{ github.event.inputs.query || '' }}
-          HOT_AI_TOPIC_MAX_RESULTS: ${{ github.event.inputs.max_results || '10' }}
+          HOT_AI_TOPIC_MAX_RESULTS: ${{ github.event.inputs.max_results || '5' }}
           HOT_AI_TOPIC_COUNT: ${{ github.event.inputs.topic_count || '3' }}
           MODELS_MODEL: ${{ github.event.inputs.model || '' }}
           MODELS_RESEARCH_MODEL: ${{ github.event.inputs.model || github.event.inputs.research_model || 'openai/gpt-5' }}
