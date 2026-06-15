@@ -76,6 +76,10 @@ class HotTopic:
     background_briefs: list[dict[str, str]]
 
 
+class RateLimitError(RuntimeError):
+    pass
+
+
 class HTMLTextExtractor(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
@@ -159,6 +163,8 @@ def request_json(url: str, *, token: str, payload: dict | None = None) -> dict:
                 )
                 time.sleep(delay)
                 continue
+            if exc.code == 429:
+                raise RateLimitError(f"Request failed due to rate limit: {url}\nHTTP 429\n{body}") from exc
             raise RuntimeError(f"Request failed: {url}\nHTTP {exc.code}\n{body}") from exc
         except URLError as exc:
             if attempt < MAX_REQUEST_RETRIES:
@@ -892,7 +898,12 @@ def main() -> int:
         print(f"Hot topic already published for {hot_topic.url}")
         return 0
 
-    analysis = generate_analysis(hot_topic)
+    try:
+        analysis = generate_analysis(hot_topic)
+    except RateLimitError as exc:
+        print(str(exc), file=sys.stderr)
+        print("Skipping generation for this run due to upstream rate limiting.")
+        return 0
     content = render_post(hot_topic, analysis)
     post_path = write_post(POSTS_DIR, analysis, content)
     write_outputs(post_path, analysis, hot_topic)
