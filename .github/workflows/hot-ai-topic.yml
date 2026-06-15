@@ -6,7 +6,7 @@ on:
       source:
         description: 'Data source: hackernews, arxiv, google, or comma-separated (e.g. hackernews,arxiv)'
         required: false
-        default: hackernews
+        default: arxiv
       query:
         description: Google News search query (only used when source=google)
         required: false
@@ -15,6 +15,10 @@ on:
         description: Maximum candidate topics per source
         required: false
         default: '10'
+      topic_count:
+        description: Number of top topics to generate posts for
+        required: false
+        default: '3'
       model:
         description: Legacy override applied to every generation stage when set
         required: false
@@ -61,9 +65,10 @@ jobs:
         id: generate
         env:
           MODELS_TOKEN: ${{ secrets.MODELS_TOKEN }}
-          HOT_AI_SOURCE: ${{ github.event.inputs.source || 'hackernews' }}
+          HOT_AI_SOURCE: ${{ github.event.inputs.source || 'arxiv' }}
           HOT_AI_TOPIC_QUERY: ${{ github.event.inputs.query || '' }}
           HOT_AI_TOPIC_MAX_RESULTS: ${{ github.event.inputs.max_results || '10' }}
+          HOT_AI_TOPIC_COUNT: ${{ github.event.inputs.topic_count || '3' }}
           MODELS_MODEL: ${{ github.event.inputs.model || '' }}
           MODELS_RESEARCH_MODEL: ${{ github.event.inputs.model || github.event.inputs.research_model || 'openai/gpt-5' }}
           MODELS_WRITING_MODEL: ${{ github.event.inputs.model || github.event.inputs.writing_model || 'openai/gpt-4.1' }}

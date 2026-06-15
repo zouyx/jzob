@@ -27,7 +27,7 @@ DEFAULT_QUERY = 'AI OR "artificial intelligence" OR OpenAI OR Anthropic OR Claud
 GOOGLE_NEWS_RSS_URL = os.environ.get("GOOGLE_NEWS_RSS_URL", "https://news.google.com/rss/search")
 HACKER_NEWS_RSS_URL = os.environ.get("HACKER_NEWS_RSS_URL", "https://news.ycombinator.com/rss")
 ARXIV_RSS_URL = os.environ.get("ARXIV_RSS_URL", "https://rss.arxiv.org/rss/cs.AI")
-DEFAULT_SOURCE = os.environ.get("HOT_AI_SOURCE", "hackernews")
+DEFAULT_SOURCE = os.environ.get("HOT_AI_SOURCE", "arxiv")
 MODELS_API_URL = os.environ.get("MODELS_API_URL", "https://models.github.ai/inference/chat/completions")
 DEFAULT_RESEARCH_MODEL = "openai/gpt-5"
 DEFAULT_WRITING_MODEL = "openai/gpt-4.1"
@@ -362,7 +362,7 @@ SOURCE_FETCHERS: dict = {
 }
 
 
-def fetch_hot_ai_topic() -> HotTopic:
+def fetch_hot_ai_topics() -> list[HotTopic]:
     max_results = int(os.environ.get("HOT_AI_TOPIC_MAX_RESULTS") or "10")
     source = os.environ.get("HOT_AI_SOURCE") or DEFAULT_SOURCE
     sources = [s.strip() for s in source.split(",") if s.strip()]
@@ -384,7 +384,7 @@ def fetch_hot_ai_topic() -> HotTopic:
         detail = "; ".join(errors) if errors else "no candidates returned"
         raise RuntimeError(f"No hot AI topic found ({detail})")
     all_candidates.sort(key=score_hot_topic, reverse=True)
-    return all_candidates[0]
+    return all_candidates
 
 
 def slugify(text: str) -> str:
@@ -581,8 +581,8 @@ def generate_research_package(topic: HotTopic) -> dict[str, object]:
                 "role": "system",
                 "content": (
                     "You are a senior technology analyst preparing research notes for a Chinese engineering blog. "
-                    "Return valid JSON only. Your job is to organize facts, competing interpretations, uncertainties, "
-                    "and an article outline before anyone starts writing."
+                    "Return valid JSON only. Your job is to dig deep: organize facts, competing interpretations, uncertainties, "
+                    "and critical angles. Prioritize depth over breadth."
                 ),
             },
             {
@@ -593,13 +593,15 @@ def generate_research_package(topic: HotTopic) -> dict[str, object]:
                     "facts（数组，列出至少 3 条已知事实，每条都要说明来自哪些材料）\n"
                     "inferences（数组，列出至少 2 条推断/判断，并明确其依据）\n"
                     "uncertainties（数组，列出至少 1 条当前仍不确定、需要谨慎表达的点）\n"
-                    "industry_impacts（数组）\n"
-                    "engineering_actions（数组）\n"
-                    "suggested_headings（数组，建议的文章章节标题）\n\n"
+                    "industry_impacts（数组，深入分析潜在行业影响，包括对不同角色/场景的差异化影响）\n"
+                    "engineering_actions（数组，给出可落地的工程建议）\n"
+                    "deeper_questions（数组，提出 2-3 个值得进一步追问的问题，引导文章走向深度分析）\n\n"
                     "要求：\n"
                     "1. 只能使用提供的材料和通用背景卡片，不要编造额外事实。\n"
                     "2. facts 中必须体现多信源视角，尽量引用不同媒体或不同背景卡片。\n"
-                    "3. 如果材料不足以支撑强结论，必须在 uncertainties 中明确指出。\n\n"
+                    "3. 如果材料不足以支撑强结论，必须在 uncertainties 中明确指出。\n"
+                    "4. 重点做横向对比：和已有方法/竞品对比，找出真正的差异和 trade-off。\n"
+                    "5. 不要只复述论文/新闻内容，要挖掘其真实意义和局限性。\n\n"
                     f"主新闻来源：{topic.source_name}\n"
                     f"发布时间：{topic.published_at}\n"
                     f"主新闻标题：{topic.title}\n"
@@ -628,23 +630,26 @@ def generate_article_draft(topic: HotTopic, research: dict[str, object]) -> dict
             {
                 "role": "system",
                 "content": (
-                    "You are GitHub Copilot writing for a personal engineering blog built with Jekyll. "
+                    "You are a senior technical writer for a deeply analytical Chinese engineering blog. "
                     "Return only valid JSON with keys: title, slug, excerpt, body. "
-                    "The blog must be in Simplified Chinese, concrete, analytical, and must distinguish facts from judgment."
+                    "Write in Simplified Chinese. Prioritize deep critical analysis over templated structure. "
+                    "Every claim must be supported; distinguish facts from judgment clearly."
                 ),
             },
             {
                 "role": "user",
                 "content": (
-                    "请基于下面的研究材料写一篇中文技术博客分析文章，并返回 JSON 对象，字段必须是 title、slug、excerpt、body。\n"
+                    "请基于下面的研究材料写一篇中文深度技术分析，并返回 JSON 对象，字段必须是 title、slug、excerpt、body。\n"
                     "要求：\n"
                     "1. title 不超过 50 个字；slug 提供一个简短主题短语即可，程序会统一转成 URL slug；excerpt 1-2 句话。\n"
                     "2. body 仅返回 Markdown 正文，不要包含 YAML front matter。\n"
-                    "3. 结构自定，但必须是一篇完整的分析文章：介绍背景 → 陈述事实与判断 → 分析影响 → 总结。\n"
+                    '3. 没有固定结构模板。从你认为最有趣、最关键的角度切入，写成一篇有深度的分析文章。可以像长篇评论或深度技术博客，不必拘泥于「背景-事实-影响-总结」的套路。\n'
                     "4. 明确区分已知事实、推断和不确定点。\n"
                     '5. 避免空话；凡是写"值得关注""影响深远""重要"这类判断，都要立刻给出原因。\n'
                     "6. 工程建议要可执行，不能只喊口号。\n"
-                    "7. 正文中保留且只保留一次原始新闻链接。\n\n"
+                    "7. 正文中保留且只保留一次原始新闻链接。\n"
+                    "8. 做横向比较：和已有方案对比，找出真正的差异和取舍。\n"
+                    "9. 深挖技术细节和工程落地中的真实挑战。\n\n"
                     f"话题：{topic.title}\n"
                     f"主新闻链接：{topic.url}\n\n"
                     f"研究材料：\n{json.dumps(research, ensure_ascii=False, indent=2)}"
@@ -674,23 +679,24 @@ def review_article_draft(
             {
                 "role": "system",
                 "content": (
-                    "You are a strict editorial reviewer for a Chinese engineering blog. "
-                    "Return only valid JSON. Fix vague writing, remove unsupported claims, and keep the result publishable."
+                    "You are a senior editorial reviewer for a deeply technical Chinese engineering blog. "
+                    "Return only valid JSON. Push for depth: cut fluff, strengthen weak arguments, "
+                    "and ensure every paragraph adds analytical value."
                 ),
             },
             {
                 "role": "user",
                 "content": (
-                    "请审阅并必要时改写下面的文章草稿，返回 JSON 对象，字段必须包含：\n"
+                    "请审阅并必要时改写下方的文章草稿，使其成为一篇真正的深度分析。返回 JSON 对象，字段必须包含：\n"
                     "approved（布尔值）\n"
                     "title\nslug\nexcerpt\nbody\nissues（数组，列出你修正或仍然担心的问题）\n\n"
                     "审阅标准：\n"
-                    "1. 删除没有依据的强结论。\n"
+                    "1. 删除没有依据的强结论，补充缺失的分析深度。\n"
                     "2. 确保事实、推断和不确定点边界清晰。\n"
                     "3. 检查正文是否有具体信息，而不是套话。\n"
                     '4. 如果出现"值得关注""影响深远"等判断，必须补充原因。\n'
                     "5. 保留一次且仅一次原始新闻链接。\n"
-                    "6. 保持文章结构完整：介绍背景、分析事实与判断、讨论影响、总结。\n\n"
+                    "6. 没有固定结构要求，但整篇文章必须提供真正的分析价值：对比、技术深度、或工程洞见。\n\n"
                     f"话题：{topic.title}\n"
                     f"主新闻链接：{topic.url}\n\n"
                     f"研究材料：\n{json.dumps(research, ensure_ascii=False, indent=2)}\n\n"
@@ -850,20 +856,27 @@ def main() -> int:
         print(f"Hot AI topic post already generated for {datetime.now(UTC):%Y-%m-%d}")
         return 0
 
-    hot_topic = fetch_hot_ai_topic()
-    if already_generated(POSTS_DIR, hot_topic):
-        print(f"Hot topic already published for {hot_topic.url}")
-        return 0
-
-    analysis = generate_analysis(hot_topic)
-    content = render_post(hot_topic, analysis)
-    post_path = write_post(POSTS_DIR, analysis, content)
-    write_outputs(post_path, analysis, hot_topic)
-    print(
-        f"Generated {post_path.relative_to(REPO_ROOT)} from {hot_topic.url} "
-        f"using models {analysis['models']}"
-    )
-    return 0
+    topic_count = int(os.environ.get("HOT_AI_TOPIC_COUNT") or "3")
+    hot_topics = fetch_hot_ai_topics()
+    generated = 0
+    for hot_topic in hot_topics[:topic_count]:
+        if already_generated(POSTS_DIR, hot_topic):
+            print(f"Hot topic already published for {hot_topic.url}")
+            continue
+        try:
+            analysis = generate_analysis(hot_topic)
+            content = render_post(hot_topic, analysis)
+            post_path = write_post(POSTS_DIR, analysis, content)
+            write_outputs(post_path, analysis, hot_topic)
+            print(
+                f"Generated {post_path.relative_to(REPO_ROOT)} from {hot_topic.url} "
+                f"using models {analysis['models']}"
+            )
+            generated += 1
+        except Exception as exc:
+            print(f"Failed to generate for {hot_topic.url}: {exc}", file=sys.stderr)
+    print(f"Generated {generated} post(s) today", file=sys.stderr)
+    return 0 if generated else 1
 
 
 if __name__ == "__main__":

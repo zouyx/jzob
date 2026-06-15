@@ -24,7 +24,7 @@ python -m unittest discover tests -v
 
 ## AI 文章生成（Python）
 
-入口：`script/generate_hot_ai_post.py`。依赖 `MODELS_TOKEN` 环境变量。数据源通过 `HOT_AI_SOURCE` 配置（默认 `hackernews`，支持 `hackernews`、`arxiv`、`google`，可逗号组合如 `hackernews,arxiv`）。三阶段默认模型：
+入口：`script/generate_hot_ai_post.py`。依赖 `MODELS_TOKEN` 环境变量。数据源通过 `HOT_AI_SOURCE` 配置（默认 `arxiv`，支持 `hackernews`、`arxiv`、`google`，可逗号组合如 `hackernews,arxiv`）。每次运行取 `HOT_AI_TOPIC_COUNT` 条（默认 3）最高分话题各生成一篇。三阶段默认模型：
 
 | 阶段     | 默认模型            | 温度  |
 |----------|-------------------|-------|
