@@ -50,7 +50,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: ${{ github.sha }}
 
       - name: Set up Python
         uses: actions/setup-python@v5

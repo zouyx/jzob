@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sys
+import time
 import unicodedata
 import urllib.parse
 import urllib.request
@@ -41,6 +42,8 @@ MAX_SLUG_LENGTH = 60
 POST_FILENAME_PREFIX = "ai"
 REQUEST_TIMEOUT_SECONDS = 120
 ERROR_SNIPPET_MAX_LENGTH = 500
+MAX_REQUEST_RETRIES = 3
+MAX_RETRY_DELAY_SECONDS = 30
 MIN_FACT_COUNT = 3
 MIN_UNCERTAINTY_COUNT = 1
 MIN_BODY_LENGTH = 1400
@@ -71,6 +74,10 @@ class HotTopic:
     url: str
     related_coverage: list[CoverageSource]
     background_briefs: list[dict[str, str]]
+
+
+class RateLimitError(RuntimeError):
+    pass
 
 
 class HTMLTextExtractor(HTMLParser):
@@ -140,14 +147,50 @@ def request_json(url: str, *, token: str, payload: dict | None = None) -> dict:
         headers["Content-Type"] = "application/json"
         data = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(url, headers=headers, data=data)
+    for attempt in range(MAX_REQUEST_RETRIES + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+                return json.load(response)
+        except HTTPError as exc:
+            body = exc.read().decode("utf-8", errors="replace")
+            is_retryable = exc.code == 429 or 500 <= exc.code <= 599
+            if is_retryable and attempt < MAX_REQUEST_RETRIES:
+                retry_after = parse_retry_after_seconds(exc)
+                delay = min(MAX_RETRY_DELAY_SECONDS, retry_after if retry_after is not None else 2 ** attempt)
+                print(
+                    f"Request retry {attempt + 1}/{MAX_REQUEST_RETRIES}: {url} (HTTP {exc.code}), sleeping {delay}s",
+                    file=sys.stderr,
+                )
+                time.sleep(delay)
+                continue
+            if exc.code == 429:
+                raise RateLimitError(f"Request failed due to rate limit: {url}\nHTTP 429\n{body}") from exc
+            raise RuntimeError(f"Request failed: {url}\nHTTP {exc.code}\n{body}") from exc
+        except URLError as exc:
+            if attempt < MAX_REQUEST_RETRIES:
+                delay = min(MAX_RETRY_DELAY_SECONDS, 2 ** attempt)
+                print(
+                    f"Request retry {attempt + 1}/{MAX_REQUEST_RETRIES}: {url} ({exc.reason}), sleeping {delay}s",
+                    file=sys.stderr,
+                )
+                time.sleep(delay)
+                continue
+            raise RuntimeError(f"Request failed: {url}\n{exc.reason}") from exc
+
+
+def parse_retry_after_seconds(error: HTTPError) -> int | None:
+    retry_after_header = error.headers.get("Retry-After")
+    if not retry_after_header:
+        return None
+    retry_after_header = clean_text(retry_after_header)
+    if retry_after_header.isdigit():
+        return max(0, int(retry_after_header))
     try:
-        with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
-            return json.load(response)
-    except HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Request failed: {url}\nHTTP {exc.code}\n{body}") from exc
-    except URLError as exc:
-        raise RuntimeError(f"Request failed: {url}\n{exc.reason}") from exc
+        retry_at = parsedate_to_datetime(retry_after_header)
+    except (TypeError, ValueError, IndexError):
+        return None
+    now = datetime.now(tz=UTC)
+    return max(0, int((retry_at.astimezone(UTC) - now).total_seconds()))
 
 
 def request_text(url: str) -> str:
@@ -855,7 +898,12 @@ def main() -> int:
         print(f"Hot topic already published for {hot_topic.url}")
         return 0
 
-    analysis = generate_analysis(hot_topic)
+    try:
+        analysis = generate_analysis(hot_topic)
+    except RateLimitError as exc:
+        print(str(exc), file=sys.stderr)
+        print("Skipping generation for this run due to upstream rate limiting.")
+        return 0
     content = render_post(hot_topic, analysis)
     post_path = write_post(POSTS_DIR, analysis, content)
     write_outputs(post_path, analysis, hot_topic)

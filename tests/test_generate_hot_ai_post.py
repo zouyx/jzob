@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import re
 import sys
 import tempfile
@@ -6,6 +7,7 @@ import unittest
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
+from urllib.error import HTTPError
 from unittest import mock
 
 
@@ -290,6 +292,75 @@ class GenerateHotAIPostTests(unittest.TestCase):
         analysis = {"title": "标题", "excerpt": "摘要", "body": "short"}
         errors = MODULE.validate_analysis(topic, research, analysis)
         self.assertTrue(any("Body is too short" in error for error in errors))
+
+    def test_request_json_retries_on_429_then_succeeds(self):
+        error = HTTPError(
+            url="https://example.com",
+            code=429,
+            msg="Too Many Requests",
+            hdrs={"Retry-After": "0"},
+            fp=io.BytesIO(b"rate limited"),
+        )
+        ok_response = mock.MagicMock()
+        ok_response.__enter__.return_value = io.StringIO('{"ok": true}')
+        with mock.patch.object(MODULE.urllib.request, "urlopen", side_effect=[error, ok_response]) as urlopen:
+            with mock.patch.object(MODULE.time, "sleep") as sleep:
+                result = MODULE.request_json("https://example.com", token="t", payload={"a": 1})
+        self.assertTrue(result["ok"])
+        self.assertEqual(urlopen.call_count, 2)
+        sleep.assert_called_once_with(0)
+
+    def test_request_json_does_not_retry_on_400(self):
+        error = HTTPError(
+            url="https://example.com",
+            code=400,
+            msg="Bad Request",
+            hdrs={},
+            fp=io.BytesIO(b"bad request"),
+        )
+        with mock.patch.object(MODULE.urllib.request, "urlopen", side_effect=error) as urlopen:
+            with mock.patch.object(MODULE.time, "sleep") as sleep:
+                with self.assertRaisesRegex(RuntimeError, r"HTTP 400"):
+                    MODULE.request_json("https://example.com", token="t")
+        self.assertEqual(urlopen.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_request_json_raises_rate_limit_error_after_retries_exhausted(self):
+        errors = [
+            HTTPError(
+                url="https://example.com",
+                code=429,
+                msg="Too Many Requests",
+                hdrs={"Retry-After": "0"},
+                fp=io.BytesIO(b"rate limited"),
+            )
+            for _ in range(MODULE.MAX_REQUEST_RETRIES + 1)
+        ]
+        with mock.patch.object(MODULE.urllib.request, "urlopen", side_effect=errors) as urlopen:
+            with mock.patch.object(MODULE.time, "sleep") as sleep:
+                with self.assertRaises(MODULE.RateLimitError):
+                    MODULE.request_json("https://example.com", token="t")
+        self.assertEqual(urlopen.call_count, MODULE.MAX_REQUEST_RETRIES + 1)
+        self.assertEqual(sleep.call_count, MODULE.MAX_REQUEST_RETRIES)
+
+    def test_main_returns_zero_when_rate_limited(self):
+        topic = MODULE.HotTopic(
+            topic_id="topic-1",
+            title="AI topic",
+            summary="Summary",
+            source_name="Google News",
+            published_at="2026-04-06 00:00:00 UTC",
+            url="https://example.com/topic",
+            related_coverage=[],
+            background_briefs=[],
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            posts_dir = Path(temp_dir)
+            with mock.patch.object(MODULE, "POSTS_DIR", posts_dir):
+                with mock.patch.object(MODULE, "fetch_hot_ai_topic", return_value=topic):
+                    with mock.patch.object(MODULE, "generate_analysis", side_effect=MODULE.RateLimitError("rate limit")):
+                        result = MODULE.main()
+        self.assertEqual(result, 0)
 
 
 if __name__ == "__main__":
