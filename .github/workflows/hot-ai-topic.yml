@@ -35,8 +35,6 @@ on:
         description: GitHub Models model ID used for the review stage
         required: false
         default: openai/gpt-4.1
-  schedule:
-    - cron: '0 2 * * *'
 
 permissions:
   contents: write
